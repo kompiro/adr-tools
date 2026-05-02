@@ -13,10 +13,16 @@ Originally extracted from [kompiro/karasu](https://github.com/kompiro/karasu).
 ## Install
 
 ```sh
+npm install --save-dev @kompiro/adr-tools
+# or
 pnpm add -D @kompiro/adr-tools
+# or
+yarn add -D @kompiro/adr-tools
 ```
 
 ## Quick start
+
+After installing locally, the `adr` binary is on your project's `PATH`:
 
 ```sh
 # Generate a starter config in CWD
@@ -29,6 +35,14 @@ npx adr validate
 
 # Regenerate effective.md, graph.md, graph/<topic>.md
 npx adr regenerate
+```
+
+To try a single command without installing first, use the `-p` flag so npx
+fetches `@kompiro/adr-tools` (otherwise `npx adr` would look for a package
+literally named `adr`):
+
+```sh
+npx -p @kompiro/adr-tools adr init
 ```
 
 ## CLI
