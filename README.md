@@ -12,17 +12,25 @@ Originally extracted from [kompiro/karasu](https://github.com/kompiro/karasu).
 
 ## Install
 
+This repo is currently private — install directly from GitHub. The
+`prepare` script runs `tsup` on install, so consuming projects always get
+a freshly built `dist/`.
+
 ```sh
-npm install --save-dev @kompiro/adr-tools
-# or
-pnpm add -D @kompiro/adr-tools
-# or
-yarn add -D @kompiro/adr-tools
+# Pin to a tag (recommended)
+pnpm add -D github:kompiro/adr-tools#v0.0.1
+
+# Or track main
+pnpm add -D github:kompiro/adr-tools
 ```
+
+`npm install` and `yarn add` accept the same `github:owner/repo#ref`
+shorthand. Authentication uses your existing git credentials (SSH key
+or HTTPS token).
 
 ## Quick start
 
-After installing locally, the `adr` binary is on your project's `PATH`:
+After installing, the `adr` binary is on your project's `PATH`:
 
 ```sh
 # Generate a starter config in CWD
@@ -35,14 +43,6 @@ npx adr validate
 
 # Regenerate effective.md, graph.md, graph/<topic>.md
 npx adr regenerate
-```
-
-To try a single command without installing first, use the `-p` flag so npx
-fetches `@kompiro/adr-tools` (otherwise `npx adr` would look for a package
-literally named `adr`):
-
-```sh
-npx -p @kompiro/adr-tools adr init
 ```
 
 ## CLI
