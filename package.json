@@ -1,9 +1,11 @@
 {
   "name": "@kompiro/adr-tools",
-  "version": "0.0.1",
-  "private": true,
+  "version": "0.0.2",
   "description": "Frontmatter-driven ADR (Architecture Decision Record) validator, extractor, regenerator, and visualizer.",
   "license": "MIT",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "author": "Hiroki Kondo <kompiro@gmail.com>",
   "homepage": "https://github.com/kompiro/adr-tools",
   "repository": {

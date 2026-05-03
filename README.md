@@ -12,21 +12,26 @@ Originally extracted from [kompiro/karasu](https://github.com/kompiro/karasu).
 
 ## Install
 
-This repo is currently private — install directly from GitHub. The
-`prepare` script runs `tsup` on install, so consuming projects always get
-a freshly built `dist/`.
+Published to **GitHub Packages** (private). Configure your project's
+`.npmrc` to route the `@kompiro` scope and authenticate:
 
-```sh
-# Pin to a tag (recommended)
-pnpm add -D github:kompiro/adr-tools#v0.0.1
-
-# Or track main
-pnpm add -D github:kompiro/adr-tools
+```ini
+# .npmrc
+@kompiro:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
 ```
 
-`npm install` and `yarn add` accept the same `github:owner/repo#ref`
-shorthand. Authentication uses your existing git credentials (SSH key
-or HTTPS token).
+Then add the dependency:
+
+```sh
+pnpm add -D @kompiro/adr-tools
+# or
+npm install --save-dev @kompiro/adr-tools
+```
+
+`GITHUB_TOKEN` must be a Personal Access Token with **`read:packages`**
+permission scoped to `kompiro/adr-tools`. In CI, use a repository secret
+and set the env var on the install step.
 
 ## Quick start
 
