@@ -1,6 +1,6 @@
 {
   "name": "@kompiro/adr-tools",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Frontmatter-driven ADR (Architecture Decision Record) validator, extractor, regenerator, and visualizer.",
   "license": "MIT",
   "publishConfig": {
