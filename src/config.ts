@@ -1,7 +1,14 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+export type IdFormat = "date-sequence" | "issue-number";
+
+export const ID_FORMATS = ["date-sequence", "issue-number"] as const satisfies readonly IdFormat[];
+
+export const DEFAULT_ID_FORMAT: IdFormat = "date-sequence";
+
 export interface AdrConfig {
+  idFormat: IdFormat;
   topics: readonly string[];
   concerns: readonly string[];
   paths: {
@@ -50,6 +57,19 @@ function parseConfig(raw: unknown, ctx: string): AdrConfig {
   }
   const obj = raw as Record<string, unknown>;
 
+  let idFormat: IdFormat = DEFAULT_ID_FORMAT;
+  if (obj.idFormat !== undefined) {
+    if (
+      typeof obj.idFormat !== "string" ||
+      !(ID_FORMATS as readonly string[]).includes(obj.idFormat)
+    ) {
+      throw new AdrConfigInvalidError(
+        `${ctx}: "idFormat" must be one of ${ID_FORMATS.join(" | ")}, got ${JSON.stringify(obj.idFormat)}`,
+      );
+    }
+    idFormat = obj.idFormat as IdFormat;
+  }
+
   const topicsRaw = obj.topics;
   if (!isStringArray(topicsRaw)) {
     throw new AdrConfigInvalidError(`${ctx}: "topics" must be an array of strings`);
@@ -76,6 +96,7 @@ function parseConfig(raw: unknown, ctx: string): AdrConfig {
   const graphByTopic = requireString(outputs, "graphByTopic", `${ctx}: paths.outputs.graphByTopic`);
 
   return {
+    idFormat,
     topics: topicsRaw,
     concerns: concernsRaw,
     paths: { adrDir, outputs: { effective, graph, graphByTopic } },

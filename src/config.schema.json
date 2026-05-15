@@ -8,6 +8,12 @@
   "required": ["topics", "concerns", "paths"],
   "properties": {
     "$schema": { "type": "string" },
+    "idFormat": {
+      "type": "string",
+      "enum": ["date-sequence", "issue-number"],
+      "default": "date-sequence",
+      "description": "ADR id / filename convention. `date-sequence` expects `YYYYMMDD-NN-<slug>.md` (id `ADR-YYYYMMDD-NN`); `issue-number` expects `<n>-<slug>.md` (id `ADR-<n>`, no zero padding)."
+    },
     "topics": {
       "type": "array",
       "description": "Controlled vocabulary for ADR `topic` field. Empty array disables vocabulary checks.",

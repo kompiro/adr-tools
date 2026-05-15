@@ -74,4 +74,26 @@ describe("loadConfig", () => {
     write(JSON.stringify({ ...VALID, topics: ["a", 1] }));
     expect(() => loadConfig(tmp)).toThrow(/topics/);
   });
+
+  it("defaults idFormat to date-sequence when omitted", () => {
+    write(JSON.stringify(VALID));
+    const cfg = loadConfig(tmp);
+    expect(cfg.idFormat).toBe("date-sequence");
+  });
+
+  it("accepts idFormat: issue-number", () => {
+    write(JSON.stringify({ ...VALID, idFormat: "issue-number" }));
+    const cfg = loadConfig(tmp);
+    expect(cfg.idFormat).toBe("issue-number");
+  });
+
+  it("rejects unknown idFormat value", () => {
+    write(JSON.stringify({ ...VALID, idFormat: "weekly" }));
+    expect(() => loadConfig(tmp)).toThrow(/idFormat/);
+  });
+
+  it("rejects non-string idFormat value", () => {
+    write(JSON.stringify({ ...VALID, idFormat: 1 }));
+    expect(() => loadConfig(tmp)).toThrow(/idFormat/);
+  });
 });

@@ -7,6 +7,7 @@ import type { AdrConfig } from "../src/config.ts";
  * relying on `TEST_CONFIG` will keep using the historical karasu values.
  */
 export const TEST_CONFIG: AdrConfig = {
+  idFormat: "date-sequence",
   topics: [
     "core-concepts",
     "parser",

@@ -488,3 +488,144 @@ date: 2026-01-01`,
     expect(result.warnings.some((w) => w.includes("body H1"))).toBe(true);
   });
 });
+
+describe("validateDirectory with idFormat: issue-number", () => {
+  const ISSUE_CONFIG = { ...TEST_CONFIG, idFormat: "issue-number" as const };
+
+  it("accepts ADR with issue-number id and matching filename", () => {
+    write(
+      "30-sample.md",
+      adr(
+        `id: ADR-30
+title: Sample
+status: accepted
+topic: core-concepts
+date: 2026-01-01`,
+        "ADR-30: Sample",
+      ),
+    );
+    const result = validateDirectory(tmp, ISSUE_CONFIG);
+    expect(result.errors).toEqual([]);
+    expect(result.parsed).toHaveLength(1);
+    expect(result.parsed[0].id).toBe("ADR-30");
+  });
+
+  it("rejects mismatch between filename and id", () => {
+    write(
+      "30-sample.md",
+      adr(`id: ADR-31
+title: Sample
+status: accepted
+topic: core-concepts
+date: 2026-01-01`),
+    );
+    const result = validateDirectory(tmp, ISSUE_CONFIG);
+    expect(
+      result.errors.some(
+        (e) =>
+          e.includes("does not match filename-derived id") &&
+          e.includes("ADR-31") &&
+          e.includes("ADR-30"),
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects date-sequence filename under issue-number format", () => {
+    // `20260101-01-foo.md` should not be recognized — issue-number format
+    // expects `<n>-slug.md`. The leading 8-digit number is technically a
+    // valid issue number, so this catches the strict-format edge case:
+    // the file parses as `ADR-20260101`, which won't match the frontmatter
+    // `ADR-20260101-01` that authors write under date-sequence.
+    write(
+      "20260101-01-legacy.md",
+      adr(`id: ADR-20260101-01
+title: Legacy
+status: accepted
+topic: core-concepts
+date: 2026-01-01`),
+    );
+    const result = validateDirectory(tmp, ISSUE_CONFIG);
+    expect(
+      result.errors.some(
+        (e) => e.includes("does not match filename-derived id") && e.includes("ADR-20260101"),
+      ),
+    ).toBe(true);
+  });
+
+  it("supports cross-references with bare ADR-<n> ids", () => {
+    write(
+      "30-referrer.md",
+      `---
+id: ADR-30
+title: Referrer
+status: accepted
+topic: core-concepts
+date: 2026-01-01
+depends_on: [ADR-31]
+---
+
+# ADR-30: Referrer
+
+This decision builds on ADR-31.
+`,
+    );
+    write(
+      "31-target.md",
+      adr(
+        `id: ADR-31
+title: Target
+status: accepted
+topic: core-concepts
+date: 2026-01-01`,
+        "ADR-31: Target",
+      ),
+    );
+    const result = validateDirectory(tmp, ISSUE_CONFIG);
+    expect(result.errors).toEqual([]);
+    // ADR-31 is both declared and mentioned, so no "declared but never mentioned" warning.
+    expect(result.warnings.some((w) => w.includes("ADR-31") && w.includes("never mentioned"))).toBe(
+      false,
+    );
+  });
+
+  it("does not greedy-match ADR-3 inside ADR-30 in body references", () => {
+    write(
+      "3-short.md",
+      `---
+id: ADR-3
+title: Short
+status: accepted
+topic: core-concepts
+date: 2026-01-01
+---
+
+# ADR-3: Short
+
+See ADR-30 for follow-up.
+`,
+    );
+    write(
+      "30-followup.md",
+      adr(
+        `id: ADR-30
+title: Followup
+status: accepted
+topic: core-concepts
+date: 2026-01-01`,
+        "ADR-30: Followup",
+      ),
+    );
+    const result = validateDirectory(tmp, ISSUE_CONFIG);
+    // ADR-3's body mentions ADR-30 (not ADR-3 itself), so it should warn
+    // about an undeclared reference to ADR-30. If \b weren't enforced, the
+    // regex would either eat the trailing "0" into ADR-3 or match overlapping.
+    expect(
+      result.warnings.some(
+        (w) =>
+          w.includes("body mentions") &&
+          w.includes("ADR-30") &&
+          w.includes("not listed in any relationship field"),
+      ),
+    ).toBe(true);
+  });
+});

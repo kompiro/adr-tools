@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { load as parseYaml } from "js-yaml";
-import type { AdrConfig } from "./config.ts";
+import type { AdrConfig, IdFormat } from "./config.ts";
 
 const VALID_STATUSES = ["proposed", "accepted", "deprecated", "superseded", "not_adopted"] as const;
 type Status = (typeof VALID_STATUSES)[number];
@@ -51,7 +51,10 @@ interface ValidationResult {
 }
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
-const ID_FROM_FILENAME_RE = /^(\d{8})-(\d{2})-/;
+const ID_FROM_FILENAME_DATE_RE = /^(\d{8})-(\d{2})-/;
+const ID_FROM_FILENAME_ISSUE_RE = /^(\d+)-/;
+const ADR_ID_REF_DATE_RE = /\bADR-\d{8}-\d{2}\b/g;
+const ADR_ID_REF_ISSUE_RE = /\bADR-\d+\b/g;
 
 function extractFrontmatter(content: string): {
   raw: string | null;
@@ -62,11 +65,22 @@ function extractFrontmatter(content: string): {
   return { raw: match[1], body: content.slice(match[0].length) };
 }
 
-function idFromFilename(file: string): string | null {
+function idFromFilename(file: string, format: IdFormat): string | null {
   const name = basename(file);
-  const m = name.match(ID_FROM_FILENAME_RE);
+  if (format === "issue-number") {
+    const m = name.match(ID_FROM_FILENAME_ISSUE_RE);
+    if (!m) return null;
+    return `ADR-${m[1]}`;
+  }
+  const m = name.match(ID_FROM_FILENAME_DATE_RE);
   if (!m) return null;
   return `ADR-${m[1]}-${m[2]}`;
+}
+
+function adrIdRefRegex(format: IdFormat): RegExp {
+  return format === "issue-number"
+    ? new RegExp(ADR_ID_REF_ISSUE_RE.source, "g")
+    : new RegExp(ADR_ID_REF_DATE_RE.source, "g");
 }
 
 function parseFrontmatter(
@@ -217,6 +231,7 @@ function validateFile(
   warnings: string[],
   topics: readonly string[],
   concerns: readonly string[],
+  idFormat: IdFormat,
 ): ParsedAdr | null {
   const { raw, body } = extractFrontmatter(content);
   if (raw === null) {
@@ -226,7 +241,7 @@ function validateFile(
   const fm = parseFrontmatter(raw, filePath, errors, topics, concerns);
   if (!fm) return null;
 
-  const expectedId = idFromFilename(filePath);
+  const expectedId = idFromFilename(filePath, idFormat);
   if (expectedId && fm.id !== expectedId) {
     errors.push(`${filePath}: "id" (${fm.id}) does not match filename-derived id (${expectedId})`);
   }
@@ -256,8 +271,6 @@ function validateFile(
   return { file: filePath, id: fm.id, fm, bodyHeading, body };
 }
 
-const ADR_ID_REF_RE = /ADR-\d{8}-\d{2}/g;
-
 function declaredRelations(fm: Frontmatter): Set<string> {
   const out = new Set<string>();
   for (const field of RELATIONSHIP_FIELDS) {
@@ -267,7 +280,12 @@ function declaredRelations(fm: Frontmatter): Set<string> {
   return out;
 }
 
-function crossValidate(parsed: ParsedAdr[], errors: string[], warnings: string[]): void {
+function crossValidate(
+  parsed: ParsedAdr[],
+  errors: string[],
+  warnings: string[],
+  idFormat: IdFormat,
+): void {
   const byId = new Map<string, ParsedAdr>();
   for (const p of parsed) {
     if (byId.has(p.id)) {
@@ -345,10 +363,11 @@ function crossValidate(parsed: ParsedAdr[], errors: string[], warnings: string[]
     }
   }
 
+  const idRefRe = adrIdRefRegex(idFormat);
   for (const p of parsed) {
     const declared = declaredRelations(p.fm);
     const mentioned = new Set<string>();
-    for (const ref of p.body.match(ADR_ID_REF_RE) ?? []) {
+    for (const ref of p.body.match(idRefRe) ?? []) {
       if (ref === p.id) continue;
       if (!byId.has(ref)) continue;
       mentioned.add(ref);
@@ -442,10 +461,18 @@ export function validateDirectory(dir: string, config: AdrConfig): ValidationRes
   for (const f of files) {
     const full = join(dir, f);
     const content = readFileSync(full, "utf8");
-    const result = validateFile(full, content, errors, warnings, config.topics, config.concerns);
+    const result = validateFile(
+      full,
+      content,
+      errors,
+      warnings,
+      config.topics,
+      config.concerns,
+      config.idFormat,
+    );
     if (result) parsed.push(result);
   }
 
-  crossValidate(parsed, errors, warnings);
+  crossValidate(parsed, errors, warnings, config.idFormat);
   return { errors, warnings, parsed };
 }
