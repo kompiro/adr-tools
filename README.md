@@ -125,8 +125,17 @@ supersedes: []
 ...
 ```
 
-See [karasu's `docs/adr/`](https://github.com/kompiro/karasu/tree/main/docs/adr)
-for a worked example.
+### Reference templates
+
+This repo ships starter templates you can copy into your project:
+
+- [`docs/adr/TEMPLATE.md`](./docs/adr/TEMPLATE.md) — frontmatter + body
+  skeleton for a new ADR
+- [`docs/adr/README.md`](./docs/adr/README.md) — index, numbering rules,
+  status transitions, and operating notes
+
+For a fully populated example corpus, see
+[karasu's `docs/adr/`](https://github.com/kompiro/karasu/tree/main/docs/adr).
 
 ## Library API
 
