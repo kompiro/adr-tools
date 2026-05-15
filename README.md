@@ -69,6 +69,7 @@ Subcommands:
 ```json
 {
   "$schema": "./node_modules/@kompiro/adr-tools/dist/config.schema.json",
+  "idFormat": "date-sequence",
   "topics": ["architecture", "infrastructure", "process"],
   "concerns": ["security", "performance", "ci"],
   "paths": {
@@ -82,10 +83,25 @@ Subcommands:
 }
 ```
 
+- `idFormat` selects the ADR id / filename convention (see below). Defaults
+  to `"date-sequence"` when omitted.
 - `topics` and `concerns` define the controlled vocabulary checked against
   ADR frontmatter. Use `[]` to disable vocabulary enforcement (fields stay
   required, but any string is accepted).
 - `paths.outputs` paths are relative to `paths.adrDir`.
+
+### `idFormat`
+
+| Value | Filename | Frontmatter `id` | Use when |
+|---|---|---|---|
+| `date-sequence` (default) | `YYYYMMDD-NN-<slug>.md` | `ADR-YYYYMMDD-NN` | You want monotonic date-ordered ids and don't care about Issue/PR linkage |
+| `issue-number` | `<n>-<slug>.md` (no zero padding) | `ADR-<n>` | You want the filename to encode the GitHub Issue (or PR) number so Issue ↔ ADR linkage is visible at a glance |
+
+Numbering policy under `issue-number` is up to the host project — a common
+order is **Issue number → PR number → local sequence (max existing + 1)**.
+
+The validator and body cross-reference scan adapt automatically. Mixing
+formats in one corpus is not supported; pick one per project.
 
 ## ADR file format
 
