@@ -5,23 +5,13 @@ metadata, enforces relationship consistency (`supersedes`, `depends_on`,
 `refines`, ...), extracts effective sets, regenerates index files, renders
 Mermaid views, and verifies code-level assumptions.
 
-Originally extracted from [kompiro/karasu](https://github.com/kompiro/karasu).
+Originally extracted from the `kompiro/karasu` monorepo.
 
-> Status: pre-1.0, API may change. Currently `private: true` in
-> `package.json` until the publish workflow lands.
+> Status: pre-1.0, API may change.
 
 ## Install
 
-Published to **GitHub Packages** (private). Configure your project's
-`.npmrc` to route the `@kompiro` scope and authenticate:
-
-```ini
-# .npmrc
-@kompiro:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
-```
-
-Then add the dependency:
+Published to the **public npm registry**:
 
 ```sh
 pnpm add -D @kompiro/adr-tools
@@ -29,9 +19,7 @@ pnpm add -D @kompiro/adr-tools
 npm install --save-dev @kompiro/adr-tools
 ```
 
-`GITHUB_TOKEN` must be a Personal Access Token with **`read:packages`**
-permission scoped to `kompiro/adr-tools`. In CI, use a repository secret
-and set the env var on the install step.
+No registry configuration or authentication is required.
 
 ## Quick start
 
@@ -134,9 +122,6 @@ This repo ships starter templates you can copy into your project:
 - [`docs/adr/README.md`](./docs/adr/README.md) — index, numbering rules,
   status transitions, and operating notes
 
-For a fully populated example corpus, see
-[karasu's `docs/adr/`](https://github.com/kompiro/karasu/tree/main/docs/adr).
-
 ## Library API
 
 ```ts
@@ -154,6 +139,9 @@ pnpm install
 pnpm test
 pnpm run build
 ```
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the contribution workflow and
+[SECURITY.md](./SECURITY.md) for reporting vulnerabilities.
 
 ## License
 
