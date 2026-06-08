@@ -1,0 +1,48 @@
+name: Release binaries
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Build standalone binaries
+        run: pnpm run build:bin
+
+      - name: Smoke-test the Linux binary
+        run: |
+          mkdir -p /tmp/adr-smoke
+          (cd /tmp/adr-smoke && "$GITHUB_WORKSPACE/dist/bin/adr-linux-x64" init)
+          test -f /tmp/adr-smoke/adr.config.json
+
+      - name: Publish release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/bin/adr-linux-x64
+            dist/bin/adr-linux-arm64
+            dist/bin/adr-darwin-x64
+            dist/bin/adr-darwin-arm64
+            dist/bin/adr-windows-x64.exe
+            dist/bin/SHA256SUMS
+            src/config.schema.json
+          fail_on_unmatched_files: true

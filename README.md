@@ -33,6 +33,30 @@ npm install --save-dev @kompiro/adr-tools
 permission scoped to `kompiro/adr-tools`. In CI, use a repository secret
 and set the env var on the install step.
 
+### Standalone binary (no Node required)
+
+For environments without a Node toolchain (other projects, Go/other-language
+devcontainers, etc.), install the self-contained executable published to
+[GitHub Releases](https://github.com/kompiro/adr-tools/releases):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/kompiro/adr-tools/main/install.sh | sh
+```
+
+The script detects your OS/arch, downloads the matching binary, verifies its
+SHA256, and installs it to `~/.local/bin/adr`. Override with `ADR_VERSION`
+(release tag) or `INSTALL_DIR`.
+
+While this repository is private, downloading requires authentication: install
+the [GitHub CLI](https://cli.github.com/) and run `gh auth login` (preferred),
+or set `GITHUB_TOKEN` (the curl fallback also needs `jq`). In a devcontainer,
+add the one-liner above as a `RUN` step in your `Dockerfile`.
+
+> The binary embeds everything it needs, so `adr init` works with no companion
+> files. The generated config's `$schema` points at the npm package path, so
+> JSON Schema autocompletion in editors only resolves when the package is also
+> installed via npm.
+
 ## Quick start
 
 After installing, the `adr` binary is on your project's `PATH`:
@@ -152,7 +176,8 @@ const files = buildGeneratedFiles(parsed, config);
 ```sh
 pnpm install
 pnpm test
-pnpm run build
+pnpm run build       # tsup -> dist/ (npm package)
+pnpm run build:bin   # bun --compile -> dist/bin/ (standalone binaries; needs bun)
 ```
 
 ## License

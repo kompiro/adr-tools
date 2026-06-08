@@ -1,9 +1,7 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { existsSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { CONFIG_FILENAME } from "./config.ts";
-
-const TEMPLATE_PATH = join(dirname(fileURLToPath(import.meta.url)), "init.template.json");
+import { INIT_TEMPLATE } from "./init.template.ts";
 
 export interface InitResult {
   written: boolean;
@@ -20,8 +18,7 @@ export function runInit(cwd: string = process.cwd()): InitResult {
       message: `${CONFIG_FILENAME} already exists at ${target}; refusing to overwrite.`,
     };
   }
-  const template = readFileSync(TEMPLATE_PATH, "utf8");
-  writeFileSync(target, template);
+  writeFileSync(target, INIT_TEMPLATE);
   return {
     written: true,
     path: target,
