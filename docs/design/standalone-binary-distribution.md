@@ -86,7 +86,7 @@ Node や node_modules のセットアップなしに `adr` コマンドを実行
 | `bun-darwin-arm64` | `adr-darwin-arm64` |
 | `bun-windows-x64` | `adr-windows-x64.exe` |
 
-`config.schema.json` / `init.template.json` の同梱方針は要検討（下記）。
+`config.schema.json` / `init.template.json` は **`Bun.embeddedFiles` でバイナリへ焼き込む**。これによりバイナリ単体で `validate` / `init` が完結し、配布先に node_modules が無くても動く。
 
 ### リリースパイプライン
 
@@ -95,8 +95,8 @@ GitHub Actions をタグ push (`v*`) で発火させ、`oven-sh/setup-bun` で B
 ### 利用側の入手経路
 
 - **install スクリプト**（本命）: `curl -fsSL https://raw.githubusercontent.com/kompiro/adr-tools/main/install.sh | sh`
-  - `uname` で OS/arch を判定 → 最新 Release（または `ADR_VERSION` 指定）から該当アセットを DL → SHA256 検証 → `~/.local/bin/adr` に配置・`chmod +x`
-- **devcontainer**: `Dockerfile` に install スクリプトの `RUN` を 1 行、または devcontainer feature として宣言的に導入
+  - `uname` で OS/arch を判定 → 最新 Release（または `ADR_VERSION` 指定）から該当アセットを DL → SHA256 検証 → `~/.local/bin/adr` に配置・`chmod +x`（sudo 不要。`~/.local/bin` が PATH に無い場合の案内を出す）
+- **devcontainer**: `Dockerfile` に install スクリプトの `RUN` を 1 行追加して導入（devcontainer feature は当面用意しない。必要が出たら後追い）
 - **Homebrew tap**（任意・後追い）: `kompiro/tap` に formula
 
 ### 留意点
@@ -108,9 +108,3 @@ GitHub Actions をタグ push (`v*`) で発火させ、`oven-sh/setup-bun` で B
 ### 利用者リポジトリ（hato 等）への影響
 
 hato は Node プロジェクトのため変更不要（`pnpm adr:validate` のまま）。本バイナリ配布は Node 非依存環境向けの追加であり、既存利用者の pre-push / CI には影響しない。
-
-## 未解決の問い
-
-- `config.schema.json` / `init.template.json` をバイナリへどう同梱するか（`Bun.embeddedFiles` で焼き込む / `init` 実行時に Release から取得 / 別ファイルとして併配布）
-- install スクリプトのインストール先デフォルト（`~/.local/bin` か `/usr/local/bin` か、PATH 追加の案内をどこまでやるか）
-- devcontainer feature まで用意するか、Dockerfile の 1 行案内に留めるか
