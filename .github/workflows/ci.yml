@@ -26,3 +26,5 @@ jobs:
           mkdir -p /tmp/adr-smoke
           node dist/cli.js init /tmp/adr-smoke
           test -f /tmp/adr-smoke/adr.config.json
+      - name: Validate own ADRs (dogfooding)
+        run: node dist/cli.js validate

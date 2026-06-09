@@ -1,7 +1,8 @@
 # ADR Index
 
-> Reference template shipped with `@kompiro/adr-tools`. Copy this file (and
-> [`TEMPLATE.md`](./TEMPLATE.md)) into your project's `docs/adr/` directory
+> This is `@kompiro/adr-tools`' own ADR index — the tool dogfoods itself, so
+> this file and [`TEMPLATE.md`](./TEMPLATE.md) double as the reference template
+> for downstream projects. Copy them into your project's `docs/adr/` directory
 > and adapt the topic vocabulary, file paths, and tooling commands to your
 > setup.
 
@@ -53,7 +54,7 @@ direction.
 
 Hosting, deployment surface, runtime, datastore choices.
 
-- _(no entries yet)_
+- [ADR-7](./7-standalone-binary-distribution.md) — Distribute the adr CLI as a Node-free standalone binary (accepted)
 
 ### process
 
