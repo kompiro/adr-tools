@@ -15,7 +15,8 @@ export default defineConfig({
   shims: false,
   banner: ({ format: _f }) => ({ js: "" }),
   onSuccess: async () => {
+    // The init starter is now embedded (src/init.template.ts); only the JSON
+    // Schema still ships as a file so user configs can resolve it via $schema.
     copyFileSync("src/config.schema.json", "dist/config.schema.json");
-    copyFileSync("src/init.template.json", "dist/init.template.json");
   },
 });
