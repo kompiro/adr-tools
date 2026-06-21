@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/kompiro/karasu/scripts/adr/config.schema.json",
+  "$id": "https://github.com/kompiro/adr-tools/config.schema.json",
   "title": "ADR tooling config",
-  "description": "Configuration consumed by scripts under scripts/adr/. Required at the directory where adr:* commands are invoked (typically the repo root).",
+  "description": "Configuration consumed by @kompiro/adr-tools. Required at the directory where adr commands are invoked (typically the repo root).",
   "type": "object",
   "additionalProperties": false,
   "required": ["topics", "concerns", "paths"],
