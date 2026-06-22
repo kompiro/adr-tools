@@ -15,16 +15,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-      # NOTE: deliberately NO `registry-url` / `scope` here. setup-node's
-      # registry-url writes an .npmrc with `//registry.npmjs.org/:_authToken=
-      # ${NODE_AUTH_TOKEN}` and defaults NODE_AUTH_TOKEN to a dummy placeholder.
-      # pnpm then sees that (invalid) token and skips the OIDC token exchange,
-      # so npm rejects the publish with a masked 404. For Trusted Publishing the
-      # .npmrc must carry NO authToken. The registry is already pinned via
-      # `publishConfig.registry` in package.json.
+      # No `registry-url` / `scope` on setup-node: it would write an .npmrc with a
+      # dummy `_authToken`, which suppresses the OIDC token exchange. Registry is
+      # pinned via `publishConfig.registry` in package.json.
       - uses: actions/setup-node@v4
         with:
-          # npm Trusted Publishing requires Node >= 22.14.
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
@@ -32,6 +27,12 @@ jobs:
       - run: pnpm run lint
       - run: pnpm run test
       - run: pnpm run build
-      # Tokenless publish via GitHub OIDC (npm Trusted Publishing). pnpm exchanges
-      # the OIDC token for a short-lived npm token; provenance is attached.
-      - run: pnpm publish --no-git-checks --access public --provenance
+      # Publish with the npm CLI, not pnpm: npm Trusted Publishing's OIDC -> npm
+      # token exchange is implemented in npm >= 11.5.1. pnpm 10.x does not perform
+      # the exchange (publish fails with ENEEDAUTH) and pnpm 11.x has a known
+      # regression (pnpm/pnpm#11513). Node 22 ships npm 10.x, so upgrade first.
+      # adr-tools is a single package (no workspace protocol), so `npm publish`
+      # needs no `workspace:*` rewriting. With no authToken in .npmrc, npm uses
+      # the GitHub OIDC token and attaches provenance automatically.
+      - run: npm install -g npm@latest
+      - run: npm publish --provenance --access public
