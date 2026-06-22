@@ -10,13 +10,15 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write # npm provenance
+      # OIDC token for npm Trusted Publishing; also signs the provenance attestation.
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # npm Trusted Publishing requires Node >= 22.14 (and the bundled npm >= 11.5.1).
+          node-version: 22
           cache: pnpm
           registry-url: https://registry.npmjs.org
           scope: "@kompiro"
@@ -25,6 +27,9 @@ jobs:
       - run: pnpm run lint
       - run: pnpm run test
       - run: pnpm run build
+      # Auth via GitHub OIDC (npm Trusted Publishing) — no NPM_TOKEN, no stored
+      # secret. The trusted publisher must be registered on npmjs.com first
+      # (package Settings -> Trusted Publisher -> GitHub Actions: repo
+      # kompiro/adr-tools, workflow publish.yml). Provenance is attached
+      # automatically; --provenance is kept as a belt-and-suspenders.
       - run: pnpm publish --no-git-checks --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
