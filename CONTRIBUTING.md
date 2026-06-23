@@ -40,7 +40,8 @@ test). CI must be green before merge.
 
 ## Releasing (maintainers)
 
-Releases publish to the public npm registry, triggered by a `v*` tag.
+Releases publish to the public npm registry, triggered by a `v*` tag. Auth uses
+**npm Trusted Publishing via GitHub OIDC** — there is no stored `NPM_TOKEN`.
 
 1. Bump `version` in `package.json` per [SemVer](https://semver.org/).
    While the package is pre-1.0, breaking changes bump the minor.
@@ -50,10 +51,11 @@ Releases publish to the public npm registry, triggered by a `v*` tag.
    git tag vX.Y.Z
    git push origin vX.Y.Z
    ```
-4. The [`Publish`](.github/workflows/publish.yml) workflow runs the full
-   check suite and `pnpm publish --access public --provenance`. It requires
-   the `NPM_TOKEN` repository secret (an npm automation token with publish
-   rights to the `@kompiro` scope).
+4. The [`Publish`](.github/workflows/publish.yml) workflow runs the full check
+   suite and publishes via `npm publish --provenance --access public`,
+   authenticating through the repository's npm trusted publisher (OIDC). The
+   [`Release binaries`](.github/workflows/release.yml) workflow runs on the same
+   tag to attach the standalone executables to the GitHub Release.
 
 ## License
 
