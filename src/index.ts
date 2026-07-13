@@ -3,7 +3,9 @@ export {
   AdrConfigMissingError,
   CONFIG_FILENAME,
   loadConfig,
+  PERMALINK_KINDS,
   type AdrConfig,
+  type PermalinkKind,
 } from "./config.ts";
 export {
   closure,
@@ -15,7 +17,12 @@ export {
 } from "./extractor.ts";
 export { runInit, type InitResult } from "./init.ts";
 export { buildGeneratedFiles, loadAdrs } from "./regenerator.ts";
-export { validateDirectory, type Frontmatter, type ParsedAdr } from "./validator.ts";
+export {
+  validateDirectory,
+  type Frontmatter,
+  type ParsedAdr,
+  type PermalinkEntry,
+} from "./validator.ts";
 export {
   findDependsOnCycles,
   listTopics,
@@ -26,3 +33,15 @@ export {
   renderTopicMarkdown,
 } from "./visualizer.ts";
 export { evaluateAll, type AssumptionResult } from "./assumptions.ts";
+export {
+  createKrsResolver,
+  createResolver,
+  evaluateAllPermalinks,
+  evaluatePermalinksForAdr,
+  normalizeKrsAnchor,
+  splitSourceAnchor,
+  validateShort,
+  type AnchorResolution,
+  type PermalinkResolver,
+  type PermalinkResult,
+} from "./permalink.ts";

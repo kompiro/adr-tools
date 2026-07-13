@@ -45,6 +45,19 @@
           }
         }
       }
+    },
+    "permalink": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "description": "Opt-in support for `permalink:` frontmatter linking an ADR to a rendered structure. Enables `adr check-permalinks`.",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["krs"],
+          "description": "Resolver for a deep `#fragment` anchor a `source` may carry. `krs` resolves karasu `#krs-<view>-<id>` anchors via the optional `@karasu-tools/core` peer dependency."
+        }
+      }
     }
   }
 }

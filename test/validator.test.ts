@@ -628,4 +628,56 @@ date: 2026-01-01`,
       ),
     ).toBe(true);
   });
+
+  describe("permalink schema", () => {
+    const withPermalink = (permalinkYaml: string) =>
+      adr(
+        `id: ADR-20260101-01
+title: Sample
+status: accepted
+topic: core-concepts
+date: 2026-01-01
+${permalinkYaml}`,
+        "ADR-20260101-01: Sample",
+      );
+
+    it("parses a valid permalink entry onto the frontmatter", () => {
+      write(
+        "20260101-01-sample.md",
+        withPermalink(`permalink:
+  - short: https://taka.example/AbC
+    source: examples/system.krs#krs-system-X
+    view: system`),
+      );
+      const result = validateDirectory(tmp, TEST_CONFIG);
+      expect(result.errors).toEqual([]);
+      expect(result.parsed[0].fm.permalink).toEqual([
+        {
+          short: "https://taka.example/AbC",
+          source: "examples/system.krs#krs-system-X",
+          view: "system",
+        },
+      ]);
+    });
+
+    it("rejects a permalink entry missing source", () => {
+      write(
+        "20260101-01-sample.md",
+        withPermalink(`permalink:
+  - short: https://taka.example/AbC`),
+      );
+      const result = validateDirectory(tmp, TEST_CONFIG);
+      expect(result.errors.some((e) => e.includes("permalink[0].source"))).toBe(true);
+    });
+
+    it("rejects a non-array permalink", () => {
+      write(
+        "20260101-01-sample.md",
+        withPermalink(`permalink:
+  source: a.krs`),
+      );
+      const result = validateDirectory(tmp, TEST_CONFIG);
+      expect(result.errors.some((e) => e.includes('"permalink" must be an array'))).toBe(true);
+    });
+  });
 });
