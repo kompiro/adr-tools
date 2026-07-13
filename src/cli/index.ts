@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /* eslint-disable no-console -- CLI entry point */
 import { main as runCheckAssumptions } from "./check-assumptions.ts";
+import { main as runCheckPermalinks } from "./check-permalinks.ts";
 import { main as runExtract } from "./extract.ts";
 import { runInitCli } from "./init.ts";
 import { main as runRegenerate } from "./regenerate.ts";
@@ -16,10 +17,11 @@ Subcommands:
   extract               query the ADR set (effective, slice, closure)
   visualize             render Markdown / Mermaid views of the ADR set
   check-assumptions     verify file: / symbol: / grep: assumptions in ADRs
+  check-permalinks      verify permalink: sources exist and deep anchors resolve
 
 Run \`adr <subcommand> --help\` for subcommand-specific options.`;
 
-function main(): number {
+function main(): number | Promise<number> {
   const sub = process.argv[2];
   // Reconstruct argv as if the subcommand binary was invoked directly:
   // [node, "adr <sub>", ...args]. Existing handlers do argv.slice(2).
@@ -43,10 +45,12 @@ function main(): number {
       return runVisualize(subArgv);
     case "check-assumptions":
       return runCheckAssumptions(subArgv);
+    case "check-permalinks":
+      return runCheckPermalinks(subArgv);
     default:
       console.error(`unknown subcommand: ${sub}\n\n${HELP}`);
       return 2;
   }
 }
 
-process.exit(main());
+Promise.resolve(main()).then((code) => process.exit(code));

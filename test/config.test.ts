@@ -96,4 +96,24 @@ describe("loadConfig", () => {
     write(JSON.stringify({ ...VALID, idFormat: 1 }));
     expect(() => loadConfig(tmp)).toThrow(/idFormat/);
   });
+
+  it("omits permalink when not configured", () => {
+    write(JSON.stringify(VALID));
+    expect(loadConfig(tmp).permalink).toBeUndefined();
+  });
+
+  it("accepts permalink.kind: krs", () => {
+    write(JSON.stringify({ ...VALID, permalink: { kind: "krs" } }));
+    expect(loadConfig(tmp).permalink).toEqual({ kind: "krs" });
+  });
+
+  it("rejects an unknown permalink.kind", () => {
+    write(JSON.stringify({ ...VALID, permalink: { kind: "mermaid" } }));
+    expect(() => loadConfig(tmp)).toThrow(/permalink.kind/);
+  });
+
+  it("rejects a non-object permalink", () => {
+    write(JSON.stringify({ ...VALID, permalink: "krs" }));
+    expect(() => loadConfig(tmp)).toThrow(/permalink/);
+  });
 });

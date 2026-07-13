@@ -19,6 +19,19 @@ type RelationshipField = (typeof RELATIONSHIP_FIELDS)[number];
 
 type Concern = string;
 
+/**
+ * A `permalink:` frontmatter entry: a pointer from an ADR to a rendered
+ * structure. `source` (the in-repo file of record) is required; `short` (a
+ * click-through URL) and `view` (a default view) are optional. A `source` may
+ * carry a `#fragment` deep anchor. Existence / anchor resolution lives in the
+ * `check-permalinks` command (see `permalink.ts`); this file validates shape.
+ */
+export interface PermalinkEntry {
+  short?: string;
+  source: string;
+  view?: string;
+}
+
 export interface Frontmatter {
   id: string;
   title: string;
@@ -34,6 +47,7 @@ export interface Frontmatter {
   refines?: string[];
   scope?: { packages?: string[]; concerns?: Concern[] };
   assumptions?: string[];
+  permalink?: PermalinkEntry[];
 }
 
 export interface ParsedAdr {
@@ -196,6 +210,38 @@ function parseFrontmatter(
     }
   }
 
+  let permalink: PermalinkEntry[] | undefined;
+  if (fm.permalink !== undefined && fm.permalink !== null) {
+    if (!Array.isArray(fm.permalink)) {
+      errors.push(`${file}: "permalink" must be an array of entries`);
+    } else {
+      permalink = [];
+      fm.permalink.forEach((raw, idx) => {
+        const at = `permalink[${idx}]`;
+        if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+          errors.push(`${file}: "${at}" must be a mapping`);
+          return;
+        }
+        const e = raw as Record<string, unknown>;
+        if (typeof e.source !== "string" || e.source.length === 0) {
+          errors.push(`${file}: "${at}.source" is required and must be a non-empty string`);
+          return;
+        }
+        if (e.short !== undefined && typeof e.short !== "string") {
+          errors.push(`${file}: "${at}.short" must be a string`);
+        }
+        if (e.view !== undefined && typeof e.view !== "string") {
+          errors.push(`${file}: "${at}.view" must be a string`);
+        }
+        permalink!.push({
+          source: e.source,
+          short: typeof e.short === "string" ? e.short : undefined,
+          view: typeof e.view === "string" ? e.view : undefined,
+        });
+      });
+    }
+  }
+
   return {
     id,
     title,
@@ -211,6 +257,7 @@ function parseFrontmatter(
     refines: stringArray("refines"),
     scope,
     assumptions: stringArray("assumptions"),
+    permalink,
   };
 }
 

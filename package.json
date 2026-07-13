@@ -59,7 +59,16 @@
   "dependencies": {
     "js-yaml": "^4.1.0"
   },
+  "peerDependencies": {
+    "@karasu-tools/core": ">=0.2.0"
+  },
+  "peerDependenciesMeta": {
+    "@karasu-tools/core": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@karasu-tools/core": "^0.2.0",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.0.0",
     "oxfmt": "^0.47.0",

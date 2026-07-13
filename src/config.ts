@@ -7,6 +7,10 @@ export const ID_FORMATS = ["date-sequence", "issue-number"] as const satisfies r
 
 export const DEFAULT_ID_FORMAT: IdFormat = "date-sequence";
 
+export type PermalinkKind = "krs";
+
+export const PERMALINK_KINDS = ["krs"] as const satisfies readonly PermalinkKind[];
+
 export interface AdrConfig {
   idFormat: IdFormat;
   topics: readonly string[];
@@ -18,6 +22,15 @@ export interface AdrConfig {
       graph: string;
       graphByTopic: string;
     };
+  };
+  /**
+   * Opt-in support for `permalink:` frontmatter that links an ADR to a
+   * rendered structure. `kind` selects the resolver for a deep `#fragment`
+   * anchor a `source` may carry (`"krs"` resolves karasu `#krs-<view>-<id>`
+   * anchors via the optional `@karasu-tools/core` peer dependency).
+   */
+  permalink?: {
+    kind: PermalinkKind;
   };
 }
 
@@ -95,11 +108,26 @@ function parseConfig(raw: unknown, ctx: string): AdrConfig {
   const graph = requireString(outputs, "graph", `${ctx}: paths.outputs.graph`);
   const graphByTopic = requireString(outputs, "graphByTopic", `${ctx}: paths.outputs.graphByTopic`);
 
+  let permalink: AdrConfig["permalink"];
+  if (obj.permalink !== undefined && obj.permalink !== null) {
+    if (typeof obj.permalink !== "object" || Array.isArray(obj.permalink)) {
+      throw new AdrConfigInvalidError(`${ctx}: "permalink" must be an object`);
+    }
+    const p = obj.permalink as Record<string, unknown>;
+    if (typeof p.kind !== "string" || !(PERMALINK_KINDS as readonly string[]).includes(p.kind)) {
+      throw new AdrConfigInvalidError(
+        `${ctx}: "permalink.kind" must be one of ${PERMALINK_KINDS.join(" | ")}, got ${JSON.stringify(p.kind)}`,
+      );
+    }
+    permalink = { kind: p.kind as PermalinkKind };
+  }
+
   return {
     idFormat,
     topics: topicsRaw,
     concerns: concernsRaw,
     paths: { adrDir, outputs: { effective, graph, graphByTopic } },
+    permalink,
   };
 }
 

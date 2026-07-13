@@ -74,6 +74,7 @@ Subcommands:
   extract               query the ADR set (effective | slice | closure)
   visualize             render Markdown / Mermaid views of the ADR set
   check-assumptions     verify file: / symbol: / grep: assumptions in ADRs
+  check-permalinks      verify permalink: sources exist and deep anchors resolve
 ```
 
 ## Configuration (`adr.config.json`)
@@ -101,6 +102,45 @@ Subcommands:
   ADR frontmatter. Use `[]` to disable vocabulary enforcement (fields stay
   required, but any string is accepted).
 - `paths.outputs` paths are relative to `paths.adrDir`.
+- `permalink` (optional) opts into `permalink:` frontmatter support and
+  `adr check-permalinks`. See below.
+
+## Linking an ADR to a rendered structure (`permalink:`)
+
+An ADR can point at a rendered architecture view with a `permalink:` block:
+
+```yaml
+permalink:
+  - short:  https://taka.example/AbCdEf         # optional click-through pointer
+    source: docs/architecture/system.krs        # required: in-repo file of record
+    view:   system                              # optional default view
+```
+
+The **`source` is the record** (the link is restorable from it even if `short`
+dies); a `source` may carry a `#fragment` deep anchor addressing a specific
+element. `adr check-permalinks` then verifies, for each entry: `source` exists,
+`short` is a well-formed non-fragment URL (offline shape check — the link is
+not fetched), and the deep anchor still resolves.
+
+Resolving a `#fragment` is language-specific, so enable a resolver `kind`:
+
+```json
+"permalink": { "kind": "krs" }
+```
+
+The built-in **`krs`** kind resolves [karasu](https://github.com/kompiro/karasu)
+`#krs-<view>-<id>` anchors by rendering the `.krs` and checking the anchor still
+exists — catching a rename/removal that dangled the link. It lazily loads the
+optional peer dependency `@karasu-tools/core`, so install it only when you use
+this kind:
+
+```sh
+pnpm add -D @karasu-tools/core
+```
+
+`check-permalinks` validates an ADR↔source consistency, so wire it to run on
+changes to **both** ADRs and the source files (e.g. an unfiltered CI step),
+not just ADR paths.
 
 ### `idFormat`
 
@@ -149,11 +189,17 @@ This repo ships starter templates you can copy into your project:
 ## Library API
 
 ```ts
-import { loadConfig, validateDirectory, buildGeneratedFiles } from "@kompiro/adr-tools";
+import {
+  loadConfig,
+  validateDirectory,
+  buildGeneratedFiles,
+  evaluateAllPermalinks,
+} from "@kompiro/adr-tools";
 
 const config = loadConfig();
 const { errors, warnings, parsed } = validateDirectory(config.paths.adrDir, config);
 const files = buildGeneratedFiles(parsed, config);
+const permalinks = await evaluateAllPermalinks(parsed, ".", config);
 ```
 
 ## Development
