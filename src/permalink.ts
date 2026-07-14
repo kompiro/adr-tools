@@ -6,7 +6,7 @@ import type { ParsedAdr } from "./validator.ts";
 
 export type { PermalinkEntry } from "./validator.ts";
 
-type PermalinkStatus = "ok" | "fail" | "manual";
+type PermalinkStatus = "ok" | "fail";
 
 export interface PermalinkResult {
   adrId: string;
@@ -27,6 +27,12 @@ export type AnchorResolution = { ok: true } | { ok: false; message: string };
  */
 export interface PermalinkResolver {
   resolveAnchor(sourceAbsPath: string, fragment: string): Promise<AnchorResolution>;
+  /**
+   * Optional: validate the `view` field against the kind's vocabulary. Returns
+   * an error message, or null when valid. `view` semantics are kind-specific,
+   * so the generic layer delegates here.
+   */
+  validateView?(view: string): string | null;
 }
 
 /** Split a `source` value into its file path and optional `#fragment`. */
@@ -52,7 +58,10 @@ export function validateShort(short: string): string | null {
   if (url.protocol !== "https:" && url.protocol !== "http:") {
     return `\`short\` must be http(s): ${short}`;
   }
-  if (url.hash.includes("s=")) {
+  // Reject a `#s=<payload>` fragment share specifically (the fragment never
+  // reaches the server, so its unfurl dies). Match the fragment form, not any
+  // hash that merely contains `s=` (e.g. `#tips=1` is fine).
+  if (/^#?s=/.test(url.hash)) {
     return `\`short\` points at a \`#s=\` fragment share; use the server-visible query form so the link unfurls: ${short}`;
   }
   return null;
@@ -125,7 +134,39 @@ export function createKrsResolver(
   loadCore: () => Promise<KarasuCore> = () =>
     import(/* @vite-ignore */ KARASU_CORE) as unknown as Promise<KarasuCore>,
 ): PermalinkResolver {
+  // Emitted-anchor set per source path — one render serves every anchor into
+  // the same `.krs` (and across every ADR, since the resolver is created once
+  // by evaluateAllPermalinks).
+  const anchorCache = new Map<string, Set<string>>();
+
+  async function emittedAnchors(sourceAbsPath: string): Promise<Set<string> | { error: string }> {
+    const cached = anchorCache.get(sourceAbsPath);
+    if (cached) return cached;
+    let core: KarasuCore;
+    try {
+      core = await loadCore();
+    } catch {
+      return { error: `permalink kind "krs" needs @karasu-tools/core installed` };
+    }
+    let svg: string;
+    try {
+      ({ svg } = await core.buildAllViewsSvgProject(sourceAbsPath, new ReadOnlyNodeFs()));
+    } catch (e) {
+      return { error: `could not render source to resolve anchor: ${(e as Error).message}` };
+    }
+    const emitted = new Set<string>();
+    for (const m of svg.matchAll(/id="(krs-[^"]+)"/g)) emitted.add(m[1]);
+    anchorCache.set(sourceAbsPath, emitted);
+    return emitted;
+  }
+
   return {
+    validateView(view: string): string | null {
+      return KRS_KNOWN_VIEWS.has(view)
+        ? null
+        : `unknown view "${view}" (known: ${[...KRS_KNOWN_VIEWS].join(", ")})`;
+    },
+
     async resolveAnchor(sourceAbsPath, fragment): Promise<AnchorResolution> {
       const wanted = normalizeKrsAnchor(fragment);
       const viewToken = wanted.split("-")[1];
@@ -135,32 +176,19 @@ export function createKrsResolver(
           message: `anchor \`#${fragment}\` uses unknown view \`${viewToken ?? ""}\` (known: ${[...KRS_KNOWN_VIEWS].join(", ")})`,
         };
       }
-      // A bare `krs-<view>` or a known whole-view fragment addresses the view
-      // itself, not an element — accept without an element-membership check.
-      if (wanted === `krs-${viewToken}` || KRS_WHOLE_VIEW_ANCHORS.has(wanted)) {
+      // Only the single-level whole-view fragments carry no `<id>` and are
+      // outside the element-anchor grammar (deploy/matrix tabs, org tree
+      // mode). A bare `krs-system`/`krs-org`/`krs-entity` is NOT such a form
+      // (their roots are `krs-<view>-root`), so it must still be checked for
+      // membership — otherwise a truncated/typo'd deep anchor passes silently.
+      if (KRS_WHOLE_VIEW_ANCHORS.has(wanted)) {
         return { ok: true };
       }
 
-      let core: KarasuCore;
-      try {
-        core = await loadCore();
-      } catch {
-        return {
-          ok: false,
-          message: `permalink kind "krs" needs @karasu-tools/core installed to resolve anchor \`#${fragment}\``,
-        };
+      const emitted = await emittedAnchors(sourceAbsPath);
+      if ("error" in emitted) {
+        return { ok: false, message: `${emitted.error} (anchor \`#${fragment}\`)` };
       }
-      let svg: string;
-      try {
-        ({ svg } = await core.buildAllViewsSvgProject(sourceAbsPath, new ReadOnlyNodeFs()));
-      } catch (e) {
-        return {
-          ok: false,
-          message: `could not render source to resolve anchor: ${(e as Error).message}`,
-        };
-      }
-      const emitted = new Set<string>();
-      for (const m of svg.matchAll(/id="(krs-[^"]+)"/g)) emitted.add(m[1]);
       if (emitted.has(wanted)) return { ok: true };
       return {
         ok: false,
@@ -204,8 +232,7 @@ export async function evaluatePermalinksForAdr(
       continue;
     }
 
-    // Collect this entry's checks; emit a single "ok" only if nothing failed
-    // and nothing was deferred to manual review.
+    // Collect this entry's failures; emit a single "ok" only if nothing failed.
     const entryResults: PermalinkResult[] = [];
 
     if (typeof entry.short === "string") {
@@ -213,13 +240,19 @@ export async function evaluatePermalinksForAdr(
       if (shortErr) entryResults.push({ ...base, status: "fail", message: shortErr });
     }
 
+    if (typeof entry.view === "string" && resolver?.validateView) {
+      const viewErr = resolver.validateView(entry.view);
+      if (viewErr) entryResults.push({ ...base, status: "fail", message: viewErr });
+    }
+
     if (fragment !== null) {
       if (!resolver) {
-        // A deep anchor with no configured resolver can't be checked — flag it
-        // for human review rather than silently passing.
+        // A deep anchor with no configured resolver can't be checked. Fail
+        // (not silently pass): declaring an anchor means opting into a
+        // `permalink.kind` that can resolve it.
         entryResults.push({
           ...base,
-          status: "manual",
+          status: "fail",
           message: `source has a deep anchor \`#${fragment}\` but no \`permalink.kind\` resolver is configured`,
         });
       } else {
@@ -241,9 +274,11 @@ export async function evaluateAllPermalinks(
   config: AdrConfig,
   options: EvaluateOptions = {},
 ): Promise<PermalinkResult[]> {
+  // Resolve the resolver once so its per-source render cache spans every ADR.
+  const resolver = options.resolver !== undefined ? options.resolver : createResolver(config);
   const results: PermalinkResult[] = [];
   for (const adr of adrs) {
-    results.push(...(await evaluatePermalinksForAdr(adr, repoRoot, config, options)));
+    results.push(...(await evaluatePermalinksForAdr(adr, repoRoot, config, { resolver })));
   }
   return results;
 }

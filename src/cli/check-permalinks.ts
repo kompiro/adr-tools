@@ -54,11 +54,11 @@ export async function main(argv: string[]): Promise<number> {
   const adrs = loadParsed(parsed.dir, config);
   const results = await evaluateAllPermalinks(adrs, parsed.repoRoot, config);
 
-  const byStatus = { ok: 0, fail: 0, manual: 0 };
+  const byStatus = { ok: 0, fail: 0 };
   for (const r of results) {
     byStatus[r.status]++;
     if (parsed.quiet && r.status !== "fail") continue;
-    const sym = r.status === "ok" ? "✓" : r.status === "fail" ? "✗" : "?";
+    const sym = r.status === "ok" ? "✓" : "✗";
     const msg = r.message ? ` — ${r.message}` : "";
     const line = `  ${sym} ${r.adrId} :: ${r.at}${msg}`;
     if (r.status === "fail") console.error(line);
@@ -66,9 +66,7 @@ export async function main(argv: string[]): Promise<number> {
   }
 
   const total = results.length;
-  console.log(
-    `\nChecked ${total} permalink(s): ${byStatus.ok} OK, ${byStatus.fail} failing, ${byStatus.manual} manual-review.`,
-  );
+  console.log(`\nChecked ${total} permalink(s): ${byStatus.ok} OK, ${byStatus.fail} failing.`);
 
   return byStatus.fail > 0 ? 1 : 0;
 }
