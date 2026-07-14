@@ -83,6 +83,9 @@ describe("validateShort", () => {
   it("rejects a #s= fragment share", () => {
     expect(validateShort("https://x.example/s#s=eyJ")).toMatch(/fragment/);
   });
+  it("does not reject an unrelated fragment that merely contains `s=`", () => {
+    expect(validateShort("https://x.example/AbC#tips=1")).toBeNull();
+  });
 });
 
 describe("evaluatePermalinksForAdr (generic layer)", () => {
@@ -111,15 +114,31 @@ describe("evaluatePermalinksForAdr (generic layer)", () => {
     expect(r[0].at).toBe("permalink[0]");
   });
 
-  it("defers a deep anchor to manual review when no resolver is configured", async () => {
+  it("fails a deep anchor when no resolver is configured", async () => {
     writeFileSync(join(tmp, "sys.krs"), "system S {}");
     const r = await evaluatePermalinksForAdr(
       fakeAdr([{ source: "sys.krs#krs-system-X" }]),
       tmp,
       TEST_CONFIG, // no permalink.kind
     );
-    expect(r[0].status).toBe("manual");
+    expect(r[0].status).toBe("fail");
     expect(r[0].message).toMatch(/no `permalink.kind` resolver/);
+  });
+
+  it("fails an unknown `view` via the resolver", async () => {
+    writeFileSync(join(tmp, "sys.krs"), "system S {}");
+    const r = await evaluatePermalinksForAdr(
+      fakeAdr([{ source: "sys.krs", view: "sytem" }]),
+      tmp,
+      KRS_CONFIG,
+      {
+        resolver: createKrsResolver(async () => ({
+          buildAllViewsSvgProject: async () => ({ svg: "" }),
+        })),
+      },
+    );
+    expect(r[0].status).toBe("fail");
+    expect(r[0].message).toMatch(/unknown view/);
   });
 
   it("resolves a deep anchor with the configured resolver (ok)", async () => {
@@ -193,6 +212,34 @@ describe("createKrsResolver", () => {
     });
     expect(await r.resolveAnchor("/x/sys.krs", "krs-deploy")).toEqual({ ok: true });
     expect(loaded).toBe(false);
+  });
+
+  it("does NOT accept a bare `krs-<view>` as whole-view — it is membership-checked", async () => {
+    // `krs-system` is not a whole-view tab (deploy/matrix/org-tree are); a
+    // truncated deep anchor must be caught, not auto-passed.
+    const r = createKrsResolver(fakeCore(["krs-system-root", "krs-system-Payments"]));
+    expect((await r.resolveAnchor("/x/sys.krs", "krs-system")).ok).toBe(false);
+  });
+
+  it("renders each source only once across repeated anchors (memoized)", async () => {
+    let renders = 0;
+    const r = createKrsResolver(async () => ({
+      buildAllViewsSvgProject: async () => {
+        renders++;
+        return { svg: '<g id="krs-system-A"><g id="krs-system-B">' };
+      },
+    }));
+    await r.resolveAnchor("/x/sys.krs", "krs-system-A");
+    await r.resolveAnchor("/x/sys.krs", "krs-system-B");
+    await r.resolveAnchor("/x/sys.krs", "krs-system-A");
+    expect(renders).toBe(1);
+  });
+
+  it("validateView accepts known views and rejects unknown", () => {
+    const r = createKrsResolver(fakeCore([]));
+    expect(r.validateView?.("system")).toBeNull();
+    expect(r.validateView?.("entity")).toBeNull();
+    expect(r.validateView?.("sytem")).toMatch(/unknown view/);
   });
 
   it("fails clearly when core cannot be loaded", async () => {
