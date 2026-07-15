@@ -138,6 +138,25 @@ this kind:
 pnpm add -D @karasu-tools/core
 ```
 
+### Recommending `@<sha>` pinning for repo-backed permalinks
+
+If your `short` links are **repo-backed permalinks** — a hosted resolver that
+renders a repo's file at a git ref, e.g.
+`…/<owner>/<repo>[/<path>][@<ref>]#anchor` — you can have `check-permalinks`
+recommend pinning them to an immutable commit SHA. List the resolver host(s):
+
+```json
+"permalink": { "kind": "krs", "repoBackedHosts": ["nest.example"] }
+```
+
+A `short` on one of these hosts that is **not** pinned to a full 40-hex SHA
+(ref-less, or `@HEAD` / `@branch` / `@tag` / abbreviated SHA) is reported as a
+**recommendation** — a non-fatal `warn` that prints but **does not fail CI** —
+so the ADR is nudged toward pointing at the structure *as of the decision*. The
+check is offline (host + URL shape only; the ref is never resolved) and keys on
+host, not route form, so it is independent of whether the resolver uses a bare
+or prefixed path. Absent/empty ⇒ the check is inert.
+
 `check-permalinks` validates an ADR↔source consistency, so wire it to run on
 changes to **both** ADRs and the source files (e.g. an unfiltered CI step),
 not just ADR paths.

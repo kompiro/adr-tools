@@ -56,6 +56,11 @@
           "type": "string",
           "enum": ["krs"],
           "description": "Resolver for a deep `#fragment` anchor a `source` may carry. `krs` resolves karasu `#krs-<view>-<id>` anchors via the optional `@karasu-tools/core` peer dependency."
+        },
+        "repoBackedHosts": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Hosts that serve repo-backed permalinks (e.g. the karasu-nest resolver, URLs of the form `…/<owner>/<repo>[/<path>][@<ref>]`). A `short` on one of these hosts is checked for `@<sha>` pinning; a non-pinned form (ref-less, branch, tag, or abbreviated SHA) is reported as a non-fatal warning recommending a full 40-hex commit SHA. Absent or empty disables the check."
         }
       }
     }

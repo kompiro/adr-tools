@@ -31,6 +31,16 @@ export interface AdrConfig {
    */
   permalink?: {
     kind: PermalinkKind;
+    /**
+     * Hosts that serve repo-backed permalinks (karasu-nest resolver URLs of the
+     * form `…/<owner>/<repo>[/<path>][@<ref>]`). A `short` whose URL host matches
+     * one of these is checked for `@<sha>` pinning: a non-pinned form (ref-less,
+     * branch, tag, or abbreviated SHA) is reported as a non-fatal `warn`
+     * recommending a full 40-hex commit SHA. Keying on host — not URL path shape
+     * — keeps the check independent of the resolver's route form. Absent or empty
+     * disables the check (no behavior change for existing adopters).
+     */
+    repoBackedHosts?: string[];
   };
 }
 
@@ -119,7 +129,22 @@ function parseConfig(raw: unknown, ctx: string): AdrConfig {
         `${ctx}: "permalink.kind" must be one of ${PERMALINK_KINDS.join(" | ")}, got ${JSON.stringify(p.kind)}`,
       );
     }
-    permalink = { kind: p.kind as PermalinkKind };
+    let repoBackedHosts: string[] | undefined;
+    if (p.repoBackedHosts !== undefined) {
+      if (
+        !Array.isArray(p.repoBackedHosts) ||
+        p.repoBackedHosts.some((h) => typeof h !== "string")
+      ) {
+        throw new AdrConfigInvalidError(
+          `${ctx}: "permalink.repoBackedHosts" must be an array of strings`,
+        );
+      }
+      repoBackedHosts = p.repoBackedHosts as string[];
+    }
+    permalink = {
+      kind: p.kind as PermalinkKind,
+      ...(repoBackedHosts ? { repoBackedHosts } : {}),
+    };
   }
 
   return {
