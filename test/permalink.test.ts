@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { AdrConfig } from "../src/config.ts";
 import {
+  checkRepoBackedPin,
   createKrsResolver,
   evaluatePermalinksForAdr,
   normalizeKrsAnchor,
@@ -85,6 +86,109 @@ describe("validateShort", () => {
   });
   it("does not reject an unrelated fragment that merely contains `s=`", () => {
     expect(validateShort("https://x.example/AbC#tips=1")).toBeNull();
+  });
+});
+
+describe("checkRepoBackedPin", () => {
+  const SHA = "a".repeat(40); // a full 40-hex commit SHA
+  const HOSTS = ["karasu-nest.example"];
+
+  it("returns null for a SHA-pinned repo-backed link (prefixed route)", () => {
+    expect(checkRepoBackedPin(`https://karasu-nest.example/r/o/repo@${SHA}`, HOSTS)).toBeNull();
+  });
+
+  it("returns null for a SHA-pinned bare route with a deep anchor", () => {
+    // The `@<sha>` sits in the pathname; the `#krs-…` anchor lives in the hash
+    // and must not be mistaken for the ref.
+    expect(
+      checkRepoBackedPin(`https://karasu-nest.example/o/repo@${SHA}#krs-system-x`, HOSTS),
+    ).toBeNull();
+  });
+
+  it("warns on a ref-less repo-backed link (mutable default branch)", () => {
+    expect(checkRepoBackedPin("https://karasu-nest.example/r/o/repo", HOSTS)).toMatch(
+      /not pinned to a commit SHA/,
+    );
+  });
+
+  it("warns on a branch/tag ref", () => {
+    expect(checkRepoBackedPin("https://karasu-nest.example/r/o/repo@main", HOSTS)).toMatch(
+      /mutable ref/,
+    );
+  });
+
+  it("warns on an abbreviated SHA (collision-prone, not immutable)", () => {
+    expect(checkRepoBackedPin("https://karasu-nest.example/r/o/repo@abc1234", HOSTS)).toMatch(
+      /not pinned/,
+    );
+  });
+
+  it("ignores a link whose host is not in the allowlist (e.g. a taka short link)", () => {
+    expect(checkRepoBackedPin("https://taka.example/AbC", HOSTS)).toBeNull();
+  });
+
+  it("is inert when the allowlist is empty", () => {
+    expect(checkRepoBackedPin(`https://karasu-nest.example/r/o/repo@main`, [])).toBeNull();
+  });
+
+  it("detects by host regardless of route form (bare vs /r/ prefix)", () => {
+    // Same non-pinned verdict whether or not the route carries a `/r/` prefix.
+    expect(checkRepoBackedPin("https://karasu-nest.example/o/repo@main", HOSTS)).toMatch(
+      /not pinned/,
+    );
+    expect(checkRepoBackedPin("https://karasu-nest.example/r/o/repo@main", HOSTS)).toMatch(
+      /not pinned/,
+    );
+  });
+});
+
+describe("evaluatePermalinksForAdr — repo-backed @<sha> recommendation", () => {
+  const SHA = "a".repeat(40);
+  const cfg: AdrConfig = {
+    ...TEST_CONFIG,
+    permalink: { kind: "krs", repoBackedHosts: ["karasu-nest.example"] },
+  };
+
+  it("warns (non-fatal) on a non-pinned repo-backed short", async () => {
+    writeFileSync(join(tmp, "sys.krs"), "system S {}");
+    const r = await evaluatePermalinksForAdr(
+      fakeAdr([{ source: "sys.krs", short: "https://karasu-nest.example/r/o/repo@main" }]),
+      tmp,
+      cfg,
+    );
+    expect(r).toHaveLength(1);
+    expect(r[0].status).toBe("warn");
+    expect(r[0].message).toMatch(/@<40-hex-sha>/);
+  });
+
+  it("passes (ok) a SHA-pinned repo-backed short", async () => {
+    writeFileSync(join(tmp, "sys.krs"), "system S {}");
+    const r = await evaluatePermalinksForAdr(
+      fakeAdr([{ source: "sys.krs", short: `https://karasu-nest.example/r/o/repo@${SHA}` }]),
+      tmp,
+      cfg,
+    );
+    expect(r[0].status).toBe("ok");
+  });
+
+  it("leaves a non-repo-backed short (taka) untouched", async () => {
+    writeFileSync(join(tmp, "sys.krs"), "system S {}");
+    const r = await evaluatePermalinksForAdr(
+      fakeAdr([{ source: "sys.krs", short: "https://taka.example/AbC" }]),
+      tmp,
+      cfg,
+    );
+    expect(r[0].status).toBe("ok");
+  });
+
+  it("does not run the pin check when no repoBackedHosts are configured", async () => {
+    writeFileSync(join(tmp, "sys.krs"), "system S {}");
+    const r = await evaluatePermalinksForAdr(
+      fakeAdr([{ source: "sys.krs", short: "https://karasu-nest.example/r/o/repo@main" }]),
+      tmp,
+      TEST_CONFIG, // no permalink.repoBackedHosts
+    );
+    expect(r[0].status).toBe("ok");
   });
 });
 

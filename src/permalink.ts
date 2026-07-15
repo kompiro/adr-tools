@@ -6,13 +6,18 @@ import type { ParsedAdr } from "./validator.ts";
 
 export type { PermalinkEntry } from "./validator.ts";
 
-type PermalinkStatus = "ok" | "fail";
+type PermalinkStatus = "ok" | "fail" | "warn";
 
 export interface PermalinkResult {
   adrId: string;
   file: string;
   /** `permalink[<index>]` locator within the ADR. */
   at: string;
+  /**
+   * `ok` — nothing to report. `fail` — a hard error (counts toward the exit
+   * code). `warn` — a non-fatal recommendation (e.g. a repo-backed permalink
+   * that is not `@<sha>`-pinned); reported but never fails the check.
+   */
   status: PermalinkStatus;
   message?: string;
 }
@@ -65,6 +70,51 @@ export function validateShort(short: string): string | null {
     return `\`short\` points at a \`#s=\` fragment share; use the server-visible query form so the link unfurls: ${short}`;
   }
   return null;
+}
+
+/** A full git commit SHA (the only form that immutably pins a repo-backed link). */
+const FULL_SHA = /^[0-9a-f]{40}$/;
+
+/**
+ * Recommend `@<sha>` pinning for a repo-backed permalink `short`.
+ *
+ * Returns a **non-fatal** warning message when `short` is served by one of the
+ * configured `repoBackedHosts` (a karasu-nest resolver URL of the form
+ * `…/<owner>/<repo>[/<path>][@<ref>]`) but is **not** pinned to a full commit
+ * SHA — i.e. it is ref-less (mutable default branch) or carries a mutable
+ * `@HEAD` / `@branch` / `@tag` / abbreviated-SHA ref. Returns `null` when the
+ * link is SHA-pinned, is not repo-backed (host not in the allowlist), or the
+ * allowlist is empty.
+ *
+ * The check is offline: it inspects the URL shape only and never resolves the
+ * ref over the network. Keying on host (not URL path shape) keeps it
+ * independent of the resolver's route form (bare vs prefixed).
+ *
+ * `short` is assumed to have passed {@link validateShort} (a parseable http(s)
+ * URL); callers should run that first.
+ */
+export function checkRepoBackedPin(short: string, repoBackedHosts: string[]): string | null {
+  if (repoBackedHosts.length === 0) return null;
+  let url: URL;
+  try {
+    url = new URL(short);
+  } catch {
+    return null; // not a URL — validateShort owns that failure
+  }
+  if (!repoBackedHosts.includes(url.hostname)) return null;
+
+  // The `@<ref>` (if any) trails the last path segment; the deep anchor lives
+  // in `url.hash`, so only `url.pathname` matters here. An `@` with no ref, or
+  // a ref that is not a full 40-hex SHA, is mutable.
+  const atIdx = url.pathname.lastIndexOf("@");
+  const ref = atIdx === -1 ? null : url.pathname.slice(atIdx + 1);
+  if (ref !== null && FULL_SHA.test(ref)) return null;
+
+  const detail =
+    ref === null
+      ? "it has no `@<ref>`, so it resolves the mutable default branch"
+      : `\`@${ref}\` is a mutable ref (branch/tag/HEAD/abbreviated SHA)`;
+  return `repo-backed permalink is not pinned to a commit SHA — ${detail}. Recommend \`@<40-hex-sha>\` so the ADR points at the structure as of the decision: ${short}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -237,7 +287,14 @@ export async function evaluatePermalinksForAdr(
 
     if (typeof entry.short === "string") {
       const shortErr = validateShort(entry.short);
-      if (shortErr) entryResults.push({ ...base, status: "fail", message: shortErr });
+      if (shortErr) {
+        entryResults.push({ ...base, status: "fail", message: shortErr });
+      } else if (config.permalink?.repoBackedHosts?.length) {
+        // Only meaningful once `short` is a valid URL. Non-fatal: a repo-backed
+        // link that isn't `@<sha>`-pinned is a recommendation, not an error.
+        const pinWarn = checkRepoBackedPin(entry.short, config.permalink.repoBackedHosts);
+        if (pinWarn) entryResults.push({ ...base, status: "warn", message: pinWarn });
+      }
     }
 
     if (typeof entry.view === "string" && resolver?.validateView) {

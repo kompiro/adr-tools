@@ -116,4 +116,22 @@ describe("loadConfig", () => {
     write(JSON.stringify({ ...VALID, permalink: "krs" }));
     expect(() => loadConfig(tmp)).toThrow(/permalink/);
   });
+
+  it("accepts permalink.repoBackedHosts as a string array", () => {
+    write(
+      JSON.stringify({
+        ...VALID,
+        permalink: { kind: "krs", repoBackedHosts: ["nest.example", "nest2.example"] },
+      }),
+    );
+    expect(loadConfig(tmp).permalink).toEqual({
+      kind: "krs",
+      repoBackedHosts: ["nest.example", "nest2.example"],
+    });
+  });
+
+  it("rejects a non-string-array permalink.repoBackedHosts", () => {
+    write(JSON.stringify({ ...VALID, permalink: { kind: "krs", repoBackedHosts: [1, 2] } }));
+    expect(() => loadConfig(tmp)).toThrow(/repoBackedHosts/);
+  });
 });

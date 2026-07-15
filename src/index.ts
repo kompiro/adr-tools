@@ -34,6 +34,7 @@ export {
 } from "./visualizer.ts";
 export { evaluateAll, type AssumptionResult } from "./assumptions.ts";
 export {
+  checkRepoBackedPin,
   createKrsResolver,
   createResolver,
   evaluateAllPermalinks,
