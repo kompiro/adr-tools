@@ -174,6 +174,13 @@ order is **Issue number → PR number → local sequence (max existing + 1)**.
 The validator and body cross-reference scan adapt automatically. Mixing
 formats in one corpus is not supported; pick one per project.
 
+Generated outputs (`effective.md`, `graph.md`, `graph/*.md`) list ADRs in
+**numeric** id order under both formats, so unpadded `issue-number` ids sort
+`ADR-99` → `ADR-999` → `ADR-1000` rather than lexically. Note that under
+`issue-number`, id order tracks *issue creation* order, which only approximates
+decision chronology — the frontmatter `date` field remains the source of truth
+for when a decision was made.
+
 ## ADR file format
 
 ADRs are Markdown files with YAML frontmatter:

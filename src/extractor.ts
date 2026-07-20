@@ -1,4 +1,5 @@
 import type { AdrConfig } from "./config.ts";
+import { compareAdrIds } from "./sort.ts";
 import { validateDirectory, type ParsedAdr } from "./validator.ts";
 
 export type OutputFormat = "list" | "markdown" | "json";
@@ -66,7 +67,7 @@ export function loadParsed(dir: string, config: AdrConfig): ParsedAdr[] {
 }
 
 export function format(adrs: ParsedAdr[], fmt: OutputFormat): string {
-  const sorted = [...adrs].sort((a, b) => a.id.localeCompare(b.id));
+  const sorted = [...adrs].sort((a, b) => compareAdrIds(a.id, b.id));
   if (fmt === "json") {
     return (
       JSON.stringify(

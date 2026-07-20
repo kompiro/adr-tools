@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { load as parseYaml } from "js-yaml";
 import type { AdrConfig, IdFormat } from "./config.ts";
+import { compareAdrIds } from "./sort.ts";
 
 const VALID_STATUSES = ["proposed", "accepted", "deprecated", "superseded", "not_adopted"] as const;
 type Status = (typeof VALID_STATUSES)[number];
@@ -503,7 +504,9 @@ export function validateDirectory(dir: string, config: AdrConfig): ValidationRes
     .filter(
       (f) => f !== "README.md" && f !== "TEMPLATE.md" && f !== "graph.md" && f !== "effective.md",
     )
-    .sort();
+    // Natural sort so `issue-number` filenames report in numeric order
+    // (99-… before 1000-…) rather than lexical.
+    .sort(compareAdrIds);
 
   for (const f of files) {
     const full = join(dir, f);
