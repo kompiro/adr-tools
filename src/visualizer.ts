@@ -1,3 +1,4 @@
+import { compareAdrIds } from "./sort.ts";
 import type { ParsedAdr } from "./validator.ts";
 
 const STATUS_STYLE: Record<string, string> = {
@@ -57,7 +58,7 @@ function writeStatusClasses(lines: string[], nodes: ParsedAdr[]): void {
 }
 
 export function renderMermaid(adrs: ParsedAdr[], options: VisualizeOptions = {}): string {
-  const sortedNodes = [...adrs].sort((a, b) => a.id.localeCompare(b.id));
+  const sortedNodes = [...adrs].sort((a, b) => compareAdrIds(a.id, b.id));
   const nodeIds = new Set(sortedNodes.map((p) => p.id));
   const lines: string[] = ["flowchart TD"];
 
@@ -131,14 +132,14 @@ export function renderMermaidForTopic(allAdrs: ParsedAdr[], topic: string): stri
   }
 
   const lines: string[] = ["flowchart TD"];
-  const sortedInside = [...inside].sort((a, b) => a.id.localeCompare(b.id));
+  const sortedInside = [...inside].sort((a, b) => compareAdrIds(a.id, b.id));
   lines.push(`  subgraph ${topic}["${topic}"]`);
   for (const p of sortedInside) {
     lines.push(`    ${mermaidNodeId(p.id)}[${mermaidNodeLabel(p)}]`);
   }
   lines.push(`  end`);
 
-  const sortedGhosts = [...ghostIds].sort().map((id) => byId.get(id)!);
+  const sortedGhosts = [...ghostIds].sort(compareAdrIds).map((id) => byId.get(id)!);
   for (const p of sortedGhosts) {
     // Ghost label includes the external topic so readers know where to click.
     const label = `"${p.id}<br/>[${p.fm.topic}] ${truncateTitle(p.fm.title).replace(/"/g, "&quot;")}"`;

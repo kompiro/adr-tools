@@ -214,4 +214,48 @@ describe("format", () => {
     expect(out[0]).toHaveProperty("id");
     expect(out[0]).toHaveProperty("status", "accepted");
   });
+
+  describe("issue-number corpus", () => {
+    const ISSUE_CONFIG = { ...TEST_CONFIG, idFormat: "issue-number" as const };
+
+    function seedIssueNumbered(): void {
+      // Deliberately spanning magnitudes: a lexical sort would order these
+      // 1000, 40, 525, 9001, 99 — see compareAdrIds in src/sort.ts.
+      for (const [n, title] of [
+        ["99", "Ninety Nine"],
+        ["1000", "One Thousand"],
+        ["40", "Forty"],
+        ["9001", "Pre-issue Era"],
+        ["525", "Five Twenty Five"],
+      ] as const) {
+        writeAdr(
+          `${n}-adr-${n}.md`,
+          `id: ADR-${n}
+title: ${title}
+status: accepted
+date: 2026-01-01
+topic: core-concepts`,
+          `ADR-${n}: ${title}`,
+        );
+      }
+    }
+
+    it("lists unpadded ids in numeric order", () => {
+      seedIssueNumbered();
+      const parsed = loadParsed(tmp, ISSUE_CONFIG);
+      const ids = JSON.parse(format(effectiveSet(parsed), "json")).map((p: { id: string }) => p.id);
+      expect(ids).toEqual(["ADR-40", "ADR-99", "ADR-525", "ADR-1000", "ADR-9001"]);
+    });
+
+    it("emits markdown links in numeric order", () => {
+      seedIssueNumbered();
+      const parsed = loadParsed(tmp, ISSUE_CONFIG);
+      const out = format(effectiveSet(parsed), "markdown");
+      const order = out
+        .split("\n")
+        .filter((l) => l.startsWith("- ["))
+        .map((l) => l.slice(3, l.indexOf("]")));
+      expect(order).toEqual(["ADR-40", "ADR-99", "ADR-525", "ADR-1000", "ADR-9001"]);
+    });
+  });
 });

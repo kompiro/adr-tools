@@ -1,6 +1,7 @@
 import { basename } from "node:path";
 import type { AdrConfig } from "./config.ts";
 import { effectiveSet, loadParsed } from "./extractor.ts";
+import { compareAdrIds } from "./sort.ts";
 import type { ParsedAdr } from "./validator.ts";
 import { listTopics, renderOverview, renderTopicMarkdown } from "./visualizer.ts";
 
@@ -42,7 +43,7 @@ function renderEffective(adrs: ParsedAdr[]): string {
   for (const topic of sortedTopics) {
     lines.push(`## ${topic}`);
     lines.push("");
-    const items = [...byTopic.get(topic)!].sort((a, b) => a.id.localeCompare(b.id));
+    const items = [...byTopic.get(topic)!].sort((a, b) => compareAdrIds(a.id, b.id));
     for (const p of items) {
       const filename = basename(p.file);
       lines.push(`- [${p.id}](${filename}) — ${p.fm.title}`);

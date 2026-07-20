@@ -16,6 +16,7 @@ export {
   type OutputFormat,
 } from "./extractor.ts";
 export { runInit, type InitResult } from "./init.ts";
+export { compareAdrIds } from "./sort.ts";
 export { buildGeneratedFiles, loadAdrs } from "./regenerator.ts";
 export {
   validateDirectory,
