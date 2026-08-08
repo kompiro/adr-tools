@@ -223,23 +223,19 @@ export function renderMarkdown(adrs: ParsedAdr[]): string {
 /** Overview: topic-grouped graph + links to per-topic detail files. */
 export function renderOverview(adrs: ParsedAdr[], topicLinkBase = "graph"): string {
   const cycles = findDependsOnCycles(adrs);
-  const byTopic = new Map<string, number>();
-  for (const p of adrs) {
-    byTopic.set(p.fm.topic, (byTopic.get(p.fm.topic) ?? 0) + 1);
-  }
-  const sortedTopics = [...byTopic.keys()].sort();
+  const sortedTopics = [...new Set(adrs.map((p) => p.fm.topic))].sort();
 
   const legend = [
     "## Per-topic detail",
     "",
-    ...sortedTopics.map((t) => `- [\`${t}\`](${topicLinkBase}/${t}.md) — ${byTopic.get(t)} ADRs`),
+    ...sortedTopics.map((t) => `- [\`${t}\`](${topicLinkBase}/${t}.md)`),
     "",
   ];
 
   const header = [
     "# ADR Dependency Graph — Overview",
     "",
-    `${adrs.length} ADRs across ${sortedTopics.length} topics. Clusters group by \`topic\` frontmatter field. Edges crossing cluster borders are cross-topic dependencies.`,
+    "Clusters group by `topic` frontmatter field. Edges crossing cluster borders are cross-topic dependencies.",
     "",
     ...cycleHeader(cycles),
   ];
