@@ -169,11 +169,15 @@ describe("renderOverview", () => {
 });
 
 describe("renderTopicMarkdown", () => {
-  it("links back to the overview and counts topic membership", () => {
+  it("links back to the overview without counting topic membership", () => {
     seed();
     const out = renderTopicMarkdown(loadParsed(tmp, TEST_CONFIG), "parser");
     expect(out).toContain("# ADR Topic: parser");
-    expect(out).toContain("3 ADRs"); // ADR-02, ADR-03, ADR-04
+    // This page is committed, so a count here drifts exactly like the ones
+    // dropped from effective.md and graph.md: two PRs regenerating against
+    // their own base each write a locally correct number, and the merge keeps
+    // whichever landed last without conflicting.
+    expect(out).not.toMatch(/\d+ ADRs/);
     expect(out).toContain("[overview](../graph.md)");
   });
 });

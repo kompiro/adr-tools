@@ -246,11 +246,10 @@ export function renderOverview(adrs: ParsedAdr[], topicLinkBase = "graph"): stri
 /** Markdown wrapper around a single topic's detail graph with ghost nodes. */
 export function renderTopicMarkdown(allAdrs: ParsedAdr[], topic: string): string {
   const mermaid = renderMermaidForTopic(allAdrs, topic);
-  const count = allAdrs.filter((p) => p.fm.topic === topic).length;
   const header = [
     `# ADR Topic: ${topic}`,
     "",
-    `${count} ADRs in this topic. Solid nodes belong to \`${topic}\`; gray dashed nodes are ghosts showing cross-topic references to help navigation.`,
+    `Solid nodes belong to \`${topic}\`; gray dashed nodes are ghosts showing cross-topic references to help navigation.`,
     "",
     "Other topics: [overview](../graph.md).",
     "",
