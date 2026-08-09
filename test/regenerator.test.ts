@@ -102,6 +102,22 @@ describe("buildGeneratedFiles", () => {
     expect(graph.contents).toMatch(/## Per-topic detail/);
   });
 
+  it("writes no count into any generated file", () => {
+    // The sweep, not another named-file assertion. The first pass at removing
+    // counts checked effective.md and graph.md by name and shipped with the
+    // per-topic pages still counting, because nothing asserted over the files
+    // it had not thought of. Every file `regenerate` writes is committed, so
+    // every one of them can drift; asserting over the whole set is what makes
+    // a newly added output covered by default rather than by remembering.
+    seed();
+    const files = buildGeneratedFiles(loadAdrs(tmp, TEST_CONFIG), TEST_CONFIG);
+    expect(files.length).toBeGreaterThan(2); // guards against the sweep going vacuous
+    const offenders = files
+      .filter((f) => /\d+ ADRs/.test(f.contents))
+      .map((f) => `${f.relativePath}: ${f.contents.match(/.*\d+ ADRs.*/)?.[0]}`);
+    expect(offenders).toEqual([]);
+  });
+
   it("produces deterministic output for the same input", () => {
     seed();
     const first = buildGeneratedFiles(loadAdrs(tmp, TEST_CONFIG), TEST_CONFIG);
