@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { validateDirectory } from "../src/validator.ts";
+import { pinsRangeToFullVersion, validateDirectory } from "../src/validator.ts";
 import { TEST_CONFIG } from "./test-helpers.ts";
 
 let tmp: string;
@@ -679,5 +679,85 @@ ${permalinkYaml}`,
       const result = validateDirectory(tmp, TEST_CONFIG);
       expect(result.errors.some((e) => e.includes('"permalink" must be an array'))).toBe(true);
     });
+  });
+});
+
+describe("assumption range pins", () => {
+  const withAssumption = (assumption: string) =>
+    adr(
+      `id: ADR-20260101-01
+title: Sample
+status: accepted
+topic: core-concepts
+date: 2026-01-01
+assumptions:
+  - ${JSON.stringify(assumption)}`,
+      "ADR-20260101-01: Sample",
+    );
+
+  it("warns by default so adopting the check fails no existing build", () => {
+    write("20260101-01-sample.md", withAssumption('grep: package.json :: "oxfmt": "\\^0.62.0"'));
+    const result = validateDirectory(tmp, TEST_CONFIG);
+    expect(result.errors).toEqual([]);
+    expect(result.warnings.some((w) => w.includes("pins a caret range to a full version"))).toBe(
+      true,
+    );
+  });
+
+  it("fails validation when rangePin is error", () => {
+    write("20260101-01-sample.md", withAssumption('grep: package.json :: "oxfmt": "\\^0.62.0"'));
+    const result = validateDirectory(tmp, {
+      ...TEST_CONFIG,
+      assumptions: { rangePin: "error" },
+    });
+    expect(result.errors.some((e) => e.includes("pins a caret range to a full version"))).toBe(
+      true,
+    );
+    expect(result.warnings.some((w) => w.includes("pins a caret range"))).toBe(false);
+  });
+
+  it("says nothing when rangePin is off", () => {
+    write("20260101-01-sample.md", withAssumption('grep: package.json :: "oxfmt": "\\^0.62.0"'));
+    const result = validateDirectory(tmp, { ...TEST_CONFIG, assumptions: { rangePin: "off" } });
+    expect(result.errors).toEqual([]);
+    expect(result.warnings.some((w) => w.includes("pins a caret range"))).toBe(false);
+  });
+
+  it("names the offending assumption so the author can find it", () => {
+    write(
+      "20260101-01-sample.md",
+      withAssumption("grep: pnpm-workspace.yaml :: nanoid: \\^3\\.3\\.18"),
+    );
+    const result = validateDirectory(tmp, TEST_CONFIG);
+    expect(result.warnings.some((w) => w.includes("nanoid"))).toBe(true);
+  });
+
+  it("accepts an ADR whose assumptions stop at the major", () => {
+    write("20260101-01-sample.md", withAssumption('grep: package.json :: "oxfmt": "\\^0\\.'));
+    const result = validateDirectory(tmp, { ...TEST_CONFIG, assumptions: { rangePin: "error" } });
+    expect(result.errors).toEqual([]);
+    expect(result.warnings.some((w) => w.includes("pins a caret range"))).toBe(false);
+  });
+});
+
+describe("pinsRangeToFullVersion", () => {
+  it("catches a range pin at every escaping level assumptions actually use", () => {
+    expect(pinsRangeToFullVersion('"pkg": "\\^0.62.0"')).toBe(true);
+    expect(pinsRangeToFullVersion('"vscode": "\\^1\\.125\\.0"')).toBe(true);
+    expect(pinsRangeToFullVersion("nanoid: ^3.3.18")).toBe(true);
+    expect(pinsRangeToFullVersion("pkg: ~4.3.3")).toBe(true);
+  });
+
+  it("leaves exact pins and version-shaped identifiers alone", () => {
+    // An exact pin is a decision about that version, so the version belongs in
+    // the assumption. `BlueOak-1.0.0` is an SPDX id that only looks like one.
+    expect(pinsRangeToFullVersion('grep: package.json :: "pkg": "1.2.3"')).toBe(false);
+    expect(pinsRangeToFullVersion("grep: CONTRIBUTING.md :: `BlueOak-1.0.0`")).toBe(false);
+    expect(pinsRangeToFullVersion("grep: package.json :: node: >=24.0.0")).toBe(false);
+  });
+
+  it("accepts a range asserted only down to the major", () => {
+    expect(pinsRangeToFullVersion('"oxfmt": "\\^0\\.')).toBe(false);
+    expect(pinsRangeToFullVersion("fast-uri: \\^3\\.")).toBe(false);
   });
 });

@@ -135,3 +135,27 @@ describe("loadConfig", () => {
     expect(() => loadConfig(tmp)).toThrow(/repoBackedHosts/);
   });
 });
+
+describe("assumptions.rangePin", () => {
+  it("defaults to absent so the validator applies its own default", () => {
+    write(JSON.stringify(VALID));
+    expect(loadConfig(tmp).assumptions).toBeUndefined();
+  });
+
+  it("accepts each severity", () => {
+    for (const rangePin of ["off", "warn", "error"] as const) {
+      write(JSON.stringify({ ...VALID, assumptions: { rangePin } }));
+      expect(loadConfig(tmp).assumptions).toEqual({ rangePin });
+    }
+  });
+
+  it("rejects an unknown severity", () => {
+    write(JSON.stringify({ ...VALID, assumptions: { rangePin: "fatal" } }));
+    expect(() => loadConfig(tmp)).toThrow(AdrConfigInvalidError);
+  });
+
+  it("rejects a non-object assumptions block", () => {
+    write(JSON.stringify({ ...VALID, assumptions: "error" }));
+    expect(() => loadConfig(tmp)).toThrow(AdrConfigInvalidError);
+  });
+});

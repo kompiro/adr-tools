@@ -46,6 +46,19 @@
         }
       }
     },
+    "assumptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Rules applied to `assumptions:` frontmatter entries.",
+      "properties": {
+        "rangePin": {
+          "type": "string",
+          "enum": ["off", "warn", "error"],
+          "default": "warn",
+          "description": "How `validate` reports an assumption that asserts a caret/tilde range down to a full major.minor.patch. `warn` prints without affecting the exit code; `error` fails validation; `off` disables the check."
+        }
+      }
+    },
     "permalink": {
       "type": "object",
       "additionalProperties": false,
