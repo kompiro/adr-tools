@@ -34,9 +34,14 @@ jobs:
           (cd /tmp/adr-smoke && "$GITHUB_WORKSPACE/dist/bin/adr-linux-x64" init)
           test -f /tmp/adr-smoke/adr.config.json
 
-      - name: Publish release assets
+      # Creates the GitHub Release for the tag if it does not exist yet, then
+      # attaches the assets to it. `generate_release_notes` fills the body from
+      # the PRs merged since the previous tag — without it the Release is
+      # created blank, which is what every release up to v0.0.13 looked like.
+      - name: Create the GitHub Release with notes and assets
         uses: softprops/action-gh-release@v2
         with:
+          generate_release_notes: true
           files: |
             dist/bin/adr-linux-x64
             dist/bin/adr-linux-arm64
