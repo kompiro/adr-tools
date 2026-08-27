@@ -11,6 +11,16 @@ export type PermalinkKind = "krs";
 
 export const PERMALINK_KINDS = ["krs"] as const satisfies readonly PermalinkKind[];
 
+export type AssumptionRangePin = "off" | "warn" | "error";
+
+export const ASSUMPTION_RANGE_PINS = [
+  "off",
+  "warn",
+  "error",
+] as const satisfies readonly AssumptionRangePin[];
+
+export const DEFAULT_ASSUMPTION_RANGE_PIN: AssumptionRangePin = "warn";
+
 export interface AdrConfig {
   idFormat: IdFormat;
   topics: readonly string[];
@@ -29,6 +39,20 @@ export interface AdrConfig {
    * anchor a `source` may carry (`"krs"` resolves karasu `#krs-<view>-<id>`
    * anchors via the optional `@karasu-tools/core` peer dependency).
    */
+  /**
+   * How `validate` reports an `assumptions:` entry that asserts a caret or
+   * tilde range down to a full `major.minor.patch`. A caret already says the
+   * tail may move, so asserting the tail fails the next routine bump of a
+   * decision nobody revisited.
+   *
+   * Defaults to `"warn"` — it prints and does not affect the exit code, so
+   * adopting a version that has this check changes no build. Set `"error"` to
+   * gate on it, or `"off"` to silence it. Raising severity later is backward
+   * compatible; starting at `"error"` would not be (ADR-32, following ADR-23).
+   */
+  assumptions?: {
+    rangePin: AssumptionRangePin;
+  };
   permalink?: {
     kind: PermalinkKind;
     /**
@@ -118,6 +142,25 @@ function parseConfig(raw: unknown, ctx: string): AdrConfig {
   const graph = requireString(outputs, "graph", `${ctx}: paths.outputs.graph`);
   const graphByTopic = requireString(outputs, "graphByTopic", `${ctx}: paths.outputs.graphByTopic`);
 
+  let assumptions: AdrConfig["assumptions"];
+  if (obj.assumptions !== undefined && obj.assumptions !== null) {
+    if (typeof obj.assumptions !== "object" || Array.isArray(obj.assumptions)) {
+      throw new AdrConfigInvalidError(`${ctx}: "assumptions" must be an object`);
+    }
+    const a = obj.assumptions as Record<string, unknown>;
+    if (a.rangePin !== undefined) {
+      if (
+        typeof a.rangePin !== "string" ||
+        !(ASSUMPTION_RANGE_PINS as readonly string[]).includes(a.rangePin)
+      ) {
+        throw new AdrConfigInvalidError(
+          `${ctx}: "assumptions.rangePin" must be one of ${ASSUMPTION_RANGE_PINS.join(" | ")}, got ${JSON.stringify(a.rangePin)}`,
+        );
+      }
+      assumptions = { rangePin: a.rangePin as AssumptionRangePin };
+    }
+  }
+
   let permalink: AdrConfig["permalink"];
   if (obj.permalink !== undefined && obj.permalink !== null) {
     if (typeof obj.permalink !== "object" || Array.isArray(obj.permalink)) {
@@ -152,6 +195,7 @@ function parseConfig(raw: unknown, ctx: string): AdrConfig {
     topics: topicsRaw,
     concerns: concernsRaw,
     paths: { adrDir, outputs: { effective, graph, graphByTopic } },
+    assumptions,
     permalink,
   };
 }

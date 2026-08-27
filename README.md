@@ -104,6 +104,47 @@ Subcommands:
 - `paths.outputs` paths are relative to `paths.adrDir`.
 - `permalink` (optional) opts into `permalink:` frontmatter support and
   `adr check-permalinks`. See below.
+- `assumptions.rangePin` (optional) sets how `validate` reports an assumption
+  that pins a caret range to a full version. Defaults to `"warn"`. See below.
+
+## Keeping `assumptions:` from rotting (`assumptions.rangePin`)
+
+`assumptions:` earns its place by failing CI when the world an ADR relies on
+moves. That only works when what is asserted is the **decision**. An assumption
+that writes the literal dependency version instead fails on the next routine
+bump — of a decision nobody revisited:
+
+```yaml
+assumptions:
+  - 'grep: package.json :: "oxfmt": "\^0.62.0"'   # red the day 0.63.0 lands
+  - 'grep: package.json :: "oxfmt": "\^0\.'      # holds for every 0.x
+```
+
+The repair costs more than it looks. A bot that raised the bump cannot edit the
+ADR to fix the CI it just turned red, so someone has to recognise the failure as
+the repo's own rather than upstream's and raise a second PR carrying the same
+bump.
+
+`validate` reports an assumption where a **caret or tilde range** is asserted
+down to a full `major.minor.patch`. The caret already says the tail may move, so
+asserting the tail contradicts the range on the same line; stopping at the major
+says what was decided and survives every bump the caret permits.
+
+```json
+"assumptions": { "rangePin": "error" }
+```
+
+| Value | Behaviour |
+|---|---|
+| `"warn"` (default) | prints, does not affect the exit code |
+| `"error"` | fails `validate` |
+| `"off"` | disables the check |
+
+An **exact pin is deliberately exempt**: `"pkg": "1.2.3"` with no caret is a
+decision *about* 1.2.3, so the version is the content of the assumption. Keying
+on the range operator rather than on the version shape is also what keeps
+identifiers that merely look like versions — an SPDX id such as
+`BlueOak-1.0.0` — out of scope without an exclusion list to maintain.
 
 ## Linking an ADR to a rendered structure (`permalink:`)
 

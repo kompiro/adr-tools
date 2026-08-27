@@ -1,10 +1,13 @@
 export {
   AdrConfigInvalidError,
   AdrConfigMissingError,
+  ASSUMPTION_RANGE_PINS,
   CONFIG_FILENAME,
+  DEFAULT_ASSUMPTION_RANGE_PIN,
   loadConfig,
   PERMALINK_KINDS,
   type AdrConfig,
+  type AssumptionRangePin,
   type PermalinkKind,
 } from "./config.ts";
 export {
@@ -19,6 +22,7 @@ export { runInit, type InitResult } from "./init.ts";
 export { compareAdrIds } from "./sort.ts";
 export { buildGeneratedFiles, loadAdrs } from "./regenerator.ts";
 export {
+  pinsRangeToFullVersion,
   validateDirectory,
   type Frontmatter,
   type ParsedAdr,

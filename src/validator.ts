@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { load as parseYaml } from "js-yaml";
+import { DEFAULT_ASSUMPTION_RANGE_PIN } from "./config.ts";
 import type { AdrConfig, IdFormat } from "./config.ts";
 import { compareAdrIds } from "./sort.ts";
 
@@ -494,6 +495,60 @@ function detectCycle(
   }
 }
 
+/**
+ * A caret or tilde range asserted all the way down to a patch number.
+ *
+ * Tested against the entry with backslashes stripped: `grep:` assumptions carry
+ * regexes and the escaping is inconsistent in practice, so `\^0.62.0`,
+ * `\^1\.125\.0` and `^4.3.3` are the same assertion wearing different amounts
+ * of escaping and all three have to be caught.
+ */
+const RANGE_PINNED_TO_PATCH = /[\^~]\d+\.\d+\.\d+/;
+
+/**
+ * True when `assumption` asserts a caret/tilde range down to a full version.
+ *
+ * Keyed on the range operator rather than on the version shape. An exact pin
+ * (`"pkg": "1.2.3"`, no caret) is a decision *about* that version, so the
+ * version belongs in the assumption; the same exemption keeps identifiers that
+ * merely look like versions — an SPDX id such as `BlueOak-1.0.0` — out of
+ * scope without an exclusion list to maintain.
+ */
+export function pinsRangeToFullVersion(assumption: string): boolean {
+  return RANGE_PINNED_TO_PATCH.test(assumption.replace(/\\/g, ""));
+}
+
+/**
+ * Report `assumptions:` entries that pin a caret range to a full version.
+ *
+ * `assumptions:` exists to fail CI when the world an ADR relies on moves, which
+ * only works when what is asserted is the decision. An entry carrying the
+ * literal version instead fails on the next routine dependency bump, of a
+ * decision nobody revisited — and the repair is expensive out of proportion,
+ * because a bot that raised the bump cannot edit the ADR to fix its own CI.
+ */
+function checkAssumptionRangePins(
+  parsed: readonly ParsedAdr[],
+  config: AdrConfig,
+  errors: string[],
+  warnings: string[],
+): void {
+  const severity = config.assumptions?.rangePin ?? DEFAULT_ASSUMPTION_RANGE_PIN;
+  if (severity === "off") return;
+
+  const sink = severity === "error" ? errors : warnings;
+  for (const adr of parsed) {
+    for (const assumption of adr.fm.assumptions ?? []) {
+      if (!pinsRangeToFullVersion(assumption)) continue;
+      sink.push(
+        `${adr.file}: assumption pins a caret range to a full version: ${assumption} ` +
+          `— assert the major and stop (e.g. "\\^0\\.") so the next bump the caret ` +
+          `already permits does not fail this ADR`,
+      );
+    }
+  }
+}
+
 export function validateDirectory(dir: string, config: AdrConfig): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -523,6 +578,7 @@ export function validateDirectory(dir: string, config: AdrConfig): ValidationRes
     if (result) parsed.push(result);
   }
 
+  checkAssumptionRangePins(parsed, config, errors, warnings);
   crossValidate(parsed, errors, warnings, config.idFormat);
   return { errors, warnings, parsed };
 }

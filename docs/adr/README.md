@@ -48,7 +48,7 @@ Suggested starter topics — replace with what fits your project:
 Cross-cutting structural decisions: module boundaries, layering, dependency
 direction.
 
-- _(no entries yet)_
+- [ADR-32](./32-assumption-range-pin-check.md) — Report assumptions that pin a caret range to a full version (accepted)
 
 ### infrastructure
 
