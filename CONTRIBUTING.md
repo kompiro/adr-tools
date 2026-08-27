@@ -51,11 +51,17 @@ Releases publish to the public npm registry, triggered by a `v*` tag. Auth uses
    git tag vX.Y.Z
    git push origin vX.Y.Z
    ```
-4. The [`Publish`](.github/workflows/publish.yml) workflow runs the full check
-   suite and publishes via `npm publish --provenance --access public`,
-   authenticating through the repository's npm trusted publisher (OIDC). The
-   [`Release binaries`](.github/workflows/release.yml) workflow runs on the same
-   tag to attach the standalone executables to the GitHub Release.
+4. Pushing the tag runs two workflows, and nothing else is done by hand:
+   - [`Publish`](.github/workflows/publish.yml) runs the full check suite and
+     publishes via `npm publish --provenance --access public`, authenticating
+     through the repository's npm trusted publisher (OIDC).
+   - [`Release binaries`](.github/workflows/release.yml) **creates the GitHub
+     Release** for the tag, fills its notes from the PRs merged since the
+     previous tag, and attaches the standalone executables and
+     `config.schema.json` to it.
+5. Check the Release once the workflows finish: it should be marked *Latest*,
+   carry generated notes, and list the binaries plus `SHA256SUMS`. Edit the
+   notes by hand if a release needs more than the generated list.
 
 ## License
 
