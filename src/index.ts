@@ -18,6 +18,22 @@ export {
   scopeSlice,
   type OutputFormat,
 } from "./extractor.ts";
+export {
+  adrRefs,
+  formatRefsJson,
+  formatRefsText,
+  formatSearchJson,
+  formatSearchText,
+  normalizeTerms,
+  searchAdrs,
+  successorChain,
+  type AdrRefs,
+  type ChainStep,
+  type Mention,
+  type Referrer,
+  type SearchHit,
+  type TermHit,
+} from "./finder.ts";
 export { runInit, type InitResult } from "./init.ts";
 export { compareAdrIds } from "./sort.ts";
 export { buildGeneratedFiles, loadAdrs } from "./regenerator.ts";

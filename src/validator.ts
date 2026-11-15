@@ -10,7 +10,7 @@ type Status = (typeof VALID_STATUSES)[number];
 
 type Topic = string;
 
-const RELATIONSHIP_FIELDS = [
+export const RELATIONSHIP_FIELDS = [
   "supersedes",
   "depends_on",
   "related_to",
@@ -93,7 +93,7 @@ function idFromFilename(file: string, format: IdFormat): string | null {
   return `ADR-${m[1]}-${m[2]}`;
 }
 
-function adrIdRefRegex(format: IdFormat): RegExp {
+export function adrIdRefRegex(format: IdFormat): RegExp {
   return format === "issue-number"
     ? new RegExp(ADR_ID_REF_ISSUE_RE.source, "g")
     : new RegExp(ADR_ID_REF_DATE_RE.source, "g");

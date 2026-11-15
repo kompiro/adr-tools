@@ -72,10 +72,52 @@ Subcommands:
   validate              schema and cross-reference validation of ADRs
   regenerate            rewrite effective.md, graph.md, and graph/<topic>.md
   extract               query the ADR set (effective | slice | closure)
+  search                find ADRs by words, with their status and successor
+  refs                  show what points at an ADR and whether it is still in force
   visualize             render Markdown / Mermaid views of the ADR set
   check-assumptions     verify file: / symbol: / grep: assumptions in ADRs
   check-permalinks      verify permalink: sources exist and deep anchors resolve
 ```
+
+### Finding the ADRs that are still in force (`search`, `refs`)
+
+Before reading the generated indexes in full, ask the two questions directly:
+
+```sh
+$ npx adr search -n 2 cache redis
+ 1  ADR-31  accepted  2026-07-18  Move the page cache to Redis  [cache*(6) redis*(7)]
+ 2  ADR-12  superseded→ADR-31  2026-03-02  Cache rendered pages in memory  [cache*(9) redis(2)]
+
+$ npx adr refs ADR-12
+ADR-12  superseded  2026-03-02  Cache rendered pages in memory
+  file: docs/adr/12-in-memory-page-cache.md
+  superseded by: ADR-31 (accepted)
+  relations: depends_on ADR-4
+  referenced by:
+    ADR-31  accepted  2026-07-18  supersedes  ← NEWER  Move the page cache to Redis
+    ADR-20  accepted  2026-05-09  related_to  ← NEWER  Expire cached pages on deploy
+  mentioned only in body:
+    ADR-40  accepted  2026-09-01  ← NEWER  Serve stale pages while the cache refills
+```
+
+- `search` matches each term as a case-insensitive substring of the title, the
+  filename slug (without the id prefix and `.md`) and the body. The id itself is
+  not searched (use `refs` for that), and a leading `# <id>: <title>` heading is
+  not counted as a body line because it only restates the title. It ranks by
+  distinct terms matched, then by terms hitting the title or filename (marked
+  `*`), then by matching body lines; ties go to the newer ADR. A superseded ADR
+  shows its successor chain, with the last step's status when it is not
+  `accepted`. `-n <N>` (default 20), `--format=json`, `--dir=<path>`; exits 1
+  when nothing matched.
+- `refs` lists, per ADR, its `superseded_by` chain, every ADR whose relationship
+  fields point at it (labelled with the fields), and ADRs that mention it only in
+  the body. `← NEWER` marks a referrer later than the ADR (by date, then id).
+  An id may be `ADR-38`, `adr-38` or `38`. `--format=json`, `--dir=<path>`;
+  exits 1 when an id is unknown.
+
+The output is line-oriented on purpose: one short answer that already says which
+ADR is current is cheaper to read than `effective.md` / `graph.md`
+([ADR-38](docs/adr/38-search-and-refs.md)).
 
 ## Configuration (`adr.config.json`)
 

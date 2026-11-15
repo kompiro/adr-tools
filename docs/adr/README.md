@@ -49,6 +49,7 @@ Cross-cutting structural decisions: module boundaries, layering, dependency
 direction.
 
 - [ADR-32](./32-assumption-range-pin-check.md) — Report assumptions that pin a caret range to a full version (accepted)
+- [ADR-38](./38-search-and-refs.md) — Add `search` and `refs` so an ADR lookup answers "is it still in force?" in one short call (accepted)
 
 ### infrastructure
 
