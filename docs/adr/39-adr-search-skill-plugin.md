@@ -43,7 +43,8 @@ The skill is in English and states:
 
 1. **The end state.** Every ADR reported is one of *in force*, *in force, partly
    revised*, *superseded*, *no longer in force* (`deprecated` / `not_adopted`) or
-   *proposed*. A superseded ADR is never cited as the current rule, every
+   *proposed*, or *unresolved* when what exists cannot settle it (a revision
+   chain that ends at a missing ADR). A superseded ADR is never cited as the current rule, every
    `← NEWER` reference is checked before an ADR is called in force, and an empty
    result lists the terms tried.
 2. **Do not read the generated outputs** named by `paths.outputs`.
