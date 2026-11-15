@@ -1,7 +1,6 @@
 /* eslint-disable no-console -- CLI entry point; stdout/stderr reporting is the whole job */
-import { AdrConfigInvalidError, AdrConfigMissingError, loadConfig } from "../config.ts";
-import { loadParsed } from "../extractor.ts";
 import { formatSearchJson, formatSearchText, normalizeTerms, searchAdrs } from "../finder.ts";
+import { loadForLookup } from "./lookup.ts";
 
 const DEFAULT_LIMIT = 20;
 
@@ -51,6 +50,7 @@ export function parseSearchArgs(args: string[]): Args | { error: string } | { he
       return { help: true };
     } else if (raw === "-n" || raw.startsWith("--limit=") || raw.startsWith("-n=")) {
       const v = raw === "-n" ? args[++i] : raw.slice(raw.indexOf("=") + 1);
+      if (v === undefined) return { error: "-n requires a value" };
       const n = parseLimit(v);
       if (n === null)
         return { error: `invalid -n / --limit (got ${v}); expected a positive integer` };
@@ -63,6 +63,7 @@ export function parseSearchArgs(args: string[]): Args | { error: string } | { he
       out.format = v;
     } else if (raw.startsWith("--dir=")) {
       out.dir = raw.slice("--dir=".length);
+      if (out.dir === "") return { error: "--dir requires a path" };
     } else if (raw.startsWith("-") && raw.length > 1) {
       return { error: `unknown option: ${raw} (use -- before a term that starts with "-")` };
     } else {
@@ -85,17 +86,9 @@ export function main(argv: string[]): number {
     console.error(`${args.error}\n\n${USAGE}`);
     return 2;
   }
-  let config;
-  try {
-    config = loadConfig();
-  } catch (e) {
-    if (e instanceof AdrConfigMissingError || e instanceof AdrConfigInvalidError) {
-      console.error(e.message);
-      return 1;
-    }
-    throw e;
-  }
-  const adrs = loadParsed(args.dir ?? config.paths.adrDir, config);
+  const loaded = loadForLookup(args.dir);
+  if ("exit" in loaded) return loaded.exit;
+  const adrs = loaded.adrs;
   const hits = searchAdrs(adrs, args.terms, { limit: args.limit });
   process.stdout.write(args.format === "json" ? formatSearchJson(hits) : formatSearchText(hits));
   if (hits.length === 0) {

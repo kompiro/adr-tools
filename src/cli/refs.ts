@@ -1,9 +1,10 @@
 /* eslint-disable no-console -- CLI entry point; stdout/stderr reporting is the whole job */
-import { AdrConfigInvalidError, AdrConfigMissingError, loadConfig } from "../config.ts";
-import { loadParsed } from "../extractor.ts";
 import { adrRefs, formatRefsJson, formatRefsText, type AdrRefs } from "../finder.ts";
+import { loadForLookup } from "./lookup.ts";
 
 const USAGE = `usage: adr refs <id> [<id> ...] [options]
+
+<id> is ADR-38, adr-38 or 38 (ADR-20260101-01 or 20260101-01 for date-sequence ids).
 
 Show, for each ADR, whether it is still in force and what points at it:
 
@@ -29,6 +30,13 @@ interface Args {
   dir: string | null;
 }
 
+/** `38` and `adr-38` → `ADR-38`; anything else is passed through. */
+export function normalizeAdrId(raw: string): string {
+  if (/^\d/.test(raw)) return `ADR-${raw}`;
+  if (/^adr-/i.test(raw)) return `ADR-${raw.slice(4)}`;
+  return raw;
+}
+
 export function parseRefsArgs(args: string[]): Args | { error: string } | { help: true } {
   const out: Args = { ids: [], format: "text", dir: null };
   for (const raw of args) {
@@ -42,10 +50,12 @@ export function parseRefsArgs(args: string[]): Args | { error: string } | { help
       out.format = v;
     } else if (raw.startsWith("--dir=")) {
       out.dir = raw.slice("--dir=".length);
+      if (out.dir === "") return { error: "--dir requires a path" };
     } else if (raw.startsWith("-")) {
       return { error: `unknown option: ${raw}` };
-    } else if (!out.ids.includes(raw)) {
-      out.ids.push(raw);
+    } else {
+      const id = normalizeAdrId(raw);
+      if (!out.ids.includes(id)) out.ids.push(id);
     }
   }
   if (out.ids.length === 0) return { error: "refs requires at least one ADR id" };
@@ -62,17 +72,9 @@ export function main(argv: string[]): number {
     console.error(`${args.error}\n\n${USAGE}`);
     return 2;
   }
-  let config;
-  try {
-    config = loadConfig();
-  } catch (e) {
-    if (e instanceof AdrConfigMissingError || e instanceof AdrConfigInvalidError) {
-      console.error(e.message);
-      return 1;
-    }
-    throw e;
-  }
-  const adrs = loadParsed(args.dir ?? config.paths.adrDir, config);
+  const loaded = loadForLookup(args.dir);
+  if ("exit" in loaded) return loaded.exit;
+  const { adrs, config } = loaded;
   const results: AdrRefs[] = [];
   let missing = 0;
   for (const id of args.ids) {

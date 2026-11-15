@@ -86,7 +86,7 @@ export function searchAdrs(
   const scored: Array<SearchHit & { titleHits: number; totalLines: number }> = [];
   for (const adr of parsed) {
     const title = adr.fm.title.toLowerCase();
-    const file = basename(adr.file).toLowerCase();
+    const file = filenameSlug(adr.file).toLowerCase();
     const bodyLines = bodyLinesWithoutHeading(adr.body.toLowerCase());
     const hits: TermHit[] = [];
     for (const term of wanted) {
@@ -118,20 +118,39 @@ export function searchAdrs(
 }
 
 /**
- * Body lines minus the first H1. The validator requires that heading to read
+ * The filename without its id prefix and `.md`, so a term like `md`, `-` or a
+ * digit does not hit every file.
+ */
+function filenameSlug(file: string): string {
+  return basename(file)
+    .replace(/\.md$/i, "")
+    .replace(/^(?:\d{8}-\d{2}|\d+)-/, "");
+}
+
+/**
+ * Body lines minus the leading H1. The validator requires that heading to read
  * `<id>: <title>`, so counting it would add one line to every title hit; the
- * title is already reported by the `*` mark.
+ * title is already reported by the `*` mark. Only a heading on the first
+ * non-blank line is dropped, so a `#` line further down (a shell comment in a
+ * code block, say) is still counted.
  */
 function bodyLinesWithoutHeading(body: string): string[] {
   const lines = body.split(/\r?\n/);
-  const h1 = lines.findIndex((l) => /^\s*#\s+/.test(l));
-  if (h1 >= 0) lines.splice(h1, 1);
+  const first = lines.findIndex((l) => l.trim() !== "");
+  if (first >= 0 && /^\s*#\s+/.test(lines[first])) lines.splice(first, 1);
   return lines;
 }
 
+/**
+ * `superseded→ADR-20→ADR-30`. The last step carries its status when it is not
+ * `accepted`, so a chain that ends at a missing, deprecated or not-adopted ADR
+ * does not read as settled.
+ */
 function statusLabel(adr: ParsedAdr, successors: ChainStep[]): string {
   if (successors.length === 0) return adr.fm.status;
-  return `${adr.fm.status}→${successors.map((s) => s.id).join("→")}`;
+  const last = successors[successors.length - 1];
+  const tail = last.status === "accepted" ? "" : `(${last.status ?? "not found"})`;
+  return `${adr.fm.status}→${successors.map((s) => s.id).join("→")}${tail}`;
 }
 
 export function formatSearchText(hits: SearchHit[]): string {

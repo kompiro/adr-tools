@@ -103,12 +103,14 @@ ADR-12  superseded  2026-03-02  Cache rendered pages in memory
 - `search` matches each term as a case-insensitive substring of the title,
   filename and body. It ranks by distinct terms matched, then by terms hitting
   the title or filename (marked `*`), then by matching body lines; ties go to the
-  newer ADR. A superseded ADR shows its successor chain. `-n <N>` (default 20),
+  newer ADR. A superseded ADR shows its successor chain, with the last step's
+  status when it is not `accepted`. `-n <N>` (default 20),
   `--format=json`, `--dir=<path>`; exits 1 when nothing matched.
 - `refs` lists, per ADR, its `superseded_by` chain, every ADR whose relationship
   fields point at it (labelled with the fields), and ADRs that mention it only in
   the body. `← NEWER` marks a referrer later than the ADR (by date, then id).
-  `--format=json`, `--dir=<path>`; exits 1 when an id is unknown.
+  An id may be `ADR-38`, `adr-38` or `38`. `--format=json`, `--dir=<path>`;
+  exits 1 when an id is unknown.
 
 The output is line-oriented on purpose: one short answer that already says which
 ADR is current is cheaper to read than `effective.md` / `graph.md`

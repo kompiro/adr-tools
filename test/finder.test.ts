@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { parseRefsArgs } from "../src/cli/refs.ts";
+import { normalizeAdrId, parseRefsArgs } from "../src/cli/refs.ts";
 import { parseSearchArgs } from "../src/cli/search.ts";
 import type { AdrConfig } from "../src/config.ts";
 import { loadParsed } from "../src/extractor.ts";
@@ -150,6 +150,35 @@ describe("searchAdrs", () => {
   it("caps the result at limit", () => {
     seedSearch();
     expect(searchAdrs(load(), ["icon"], { limit: 1 })).toHaveLength(1);
+  });
+
+  it("matches the filename slug only, not its id prefix or extension", () => {
+    seedSearch();
+    expect(searchAdrs(load(), ["md"])).toEqual([]);
+    expect(searchAdrs(load(), ["40"])).toEqual([]);
+  });
+
+  it("drops only a leading H1 from the line count, not a later # line", () => {
+    writeFileSync(
+      join(tmp, "7-no-heading.md"),
+      "---\nid: ADR-7\ntitle: No heading\nstatus: accepted\ntopic: core-concepts\ndate: 2026-01-01\n---\n\nIntro.\n\n```sh\n# install redis\n```\n",
+    );
+    const [hit] = searchAdrs(load(), ["redis"]);
+    expect(hit.terms).toEqual([{ term: "redis", lines: 1, titleHit: false }]);
+  });
+
+  it("shows the status at the end of the chain when it is not accepted", () => {
+    writeAdr({
+      n: 50,
+      slug: "dangling",
+      title: "Dangling",
+      date: "2026-01-01",
+      status: "superseded",
+      extra: "superseded_by: ADR-99",
+    });
+    expect(formatSearchText(searchAdrs(load(), ["dangling"]))).toBe(
+      " 1  ADR-50  superseded→ADR-99(not found)  2026-01-01  Dangling  [dangling*(0)]\n",
+    );
   });
 
   it("throws when no non-empty term is given", () => {
@@ -354,6 +383,8 @@ describe("parseSearchArgs", () => {
     expect(parseSearchArgs(["a", "-n", "0"])).toHaveProperty("error");
     expect(parseSearchArgs(["a", "--format=list"])).toHaveProperty("error");
     expect(parseSearchArgs(["a", "-x"])).toHaveProperty("error");
+    expect(parseSearchArgs(["a", "-n"])).toEqual({ error: "-n requires a value" });
+    expect(parseSearchArgs(["a", "--dir="])).toEqual({ error: "--dir requires a path" });
   });
 });
 
@@ -369,5 +400,14 @@ describe("parseRefsArgs", () => {
   it("rejects a missing id and unknown options", () => {
     expect(parseRefsArgs([])).toHaveProperty("error");
     expect(parseRefsArgs(["ADR-1", "--outside"])).toHaveProperty("error");
+    expect(parseRefsArgs(["ADR-1", "--dir="])).toEqual({ error: "--dir requires a path" });
+  });
+
+  it("accepts a bare number or a lowercase prefix as an id", () => {
+    expect(normalizeAdrId("38")).toBe("ADR-38");
+    expect(normalizeAdrId("adr-38")).toBe("ADR-38");
+    expect(normalizeAdrId("20260101-01")).toBe("ADR-20260101-01");
+    expect(normalizeAdrId("ADR-38")).toBe("ADR-38");
+    expect(parseRefsArgs(["38", "ADR-38"])).toMatchObject({ ids: ["ADR-38"] });
   });
 });
