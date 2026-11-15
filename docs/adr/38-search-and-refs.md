@@ -62,8 +62,11 @@ inherit `idFormat` and `paths.adrDir` from the config like every other command.
     2  ADR-2906  accepted  2026-09-26  <title>  [icon mode(8) 削除*(20)]
    ```
 
-   A superseded ADR shows its `superseded_by` chain to the end; `*` marks a hit
-   in the title or filename; the count is matching body lines. Options: `-n`
+   A superseded ADR shows its `superseded_by` chain to the end, with the last
+   step's status when it is not `accepted` (`superseded→ADR-99(not found)`);
+   `*` marks a hit in the title or the filename slug (without the id prefix and
+   `.md`, so `md` or a digit does not hit every file); the count is matching
+   body lines. Options: `-n`
    (default 20), `--format=json`, `--dir`. Exit status 1 when nothing matched,
    as with `grep`.
 
@@ -72,8 +75,13 @@ inherit `idFormat` and `paths.adrDir` from the config like every other command.
    relationship fields point at it (`supersedes`, `superseded_by`, `depends_on`,
    `related_to`, `conflicts_with`, `refines`), labelled with the fields; and the
    ADRs that mention it only in the body. Referrers are listed newest first and
-   marked `← NEWER` when later than the ADR. Options: `--format=json`, `--dir`.
-   Exit status 1 when any id is unknown.
+   marked `← NEWER` when later than the ADR. An id may be given as `ADR-38`,
+   `adr-38` or `38`. Options: `--format=json`, `--dir`. Exit status 1 when any
+   id is unknown.
+
+   Both commands say on stderr when `adr validate` reports errors, because an
+   ADR whose frontmatter does not parse is left out and would otherwise read as
+   "not found".
 
 3. **Text is the default output, JSON an option.** The measured saving comes
    from a short, line-oriented answer that already says which ADR is current.
