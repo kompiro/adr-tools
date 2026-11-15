@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { RELATIONSHIP_FIELDS, VALID_STATUSES } from "../src/validator.ts";
@@ -22,14 +22,23 @@ function subcommands(): string[] {
     .filter((sub) => sub !== "help");
 }
 
-const CLI_SOURCE = readdirSync(resolve(ROOT, "src/cli"))
-  .map((file) => read(`src/cli/${file}`))
-  .join("\n");
+// The skill runs `search` and `refs` only, so their flags must come from those
+// two files, not from any subcommand that happens to share the name.
+const LOOKUP_SOURCE = ["search.ts", "refs.ts"].map((f) => read(`src/cli/${f}`)).join("\n");
+// Flags the skill names for other tools: `npx --no-install`, `grep -w`.
+const FOREIGN_FLAGS = new Set(["--no-install", "-w"]);
 
 const SKILL_SUBCOMMANDS = [
   ...new Set([...SKILL.matchAll(/\badr ([a-z][a-z-]+)/g)].map((m) => m[1])),
 ];
-const SKILL_FLAGS = [...new Set([...SKILL.matchAll(/--[a-z][a-z-]*/g)].map((m) => m[0]))];
+const SKILL_FLAGS = [
+  ...new Set([
+    ...[...SKILL.matchAll(/--[a-z][a-z-]*/g)].map((m) => m[0]),
+    // A short flag inside a code span, such as `-n <N>`. grep's own flags
+    // (`-ril`, `-rlw`) are longer than one letter and do not match.
+    ...[...SKILL.matchAll(/`(-[a-z])[ `]/g)].map((m) => m[1] as string),
+  ]),
+].filter((flag) => !FOREIGN_FLAGS.has(flag));
 
 interface SchemaNode {
   properties?: Record<string, SchemaNode>;
@@ -58,8 +67,12 @@ describe("adr-search skill", () => {
     expect(subcommands()).toContain(sub);
   });
 
-  it.each(SKILL_FLAGS)("names %s, which the CLI defines", (flag) => {
-    expect(CLI_SOURCE).toContain(flag);
+  it("finds the short flag -n", () => {
+    expect(SKILL_FLAGS).toContain("-n");
+  });
+
+  it.each(SKILL_FLAGS)("names %s, which search or refs defines", (flag) => {
+    expect(LOOKUP_SOURCE).toContain(`"${flag}`);
   });
 
   it.each(SKILL_CONFIG_PATHS)("names %s, which the config schema defines", (path) => {
@@ -72,8 +85,9 @@ describe("adr-search skill", () => {
     expect(codeSpans.some((span) => new RegExp(`\\b${status}\\b`).test(span))).toBe(true);
   });
 
+  const fallback = SKILL.slice(SKILL.indexOf("## Fallback"));
   it.each([...RELATIONSHIP_FIELDS])("names relationship field %s in the fallback", (field) => {
-    expect(SKILL).toContain(`\`${field}\``);
+    expect(fallback).toContain(`\`${field}\``);
   });
 });
 

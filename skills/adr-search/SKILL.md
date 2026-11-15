@@ -23,14 +23,17 @@ The report classifies every ADR it mentions as exactly one of:
 | --- | --- |
 | **in force** | `status: accepted`, not superseded, and no newer ADR changes part of its decision |
 | **in force, partly revised** | as above, but a newer ADR changes part of its decision. Name that ADR and the part |
-| **superseded** | `status: superseded`. Name the ADR at the end of its `superseded_by` chain |
+| **superseded** | `status: superseded`. Name the ADR at the end of its `superseded_by` chain, and classify that ADR by its own status |
 | **no longer in force** | `status: deprecated` or `not_adopted`. A `not_adopted` ADR is still worth citing: it records an option that was rejected and why |
 | **proposed** | `status: proposed`. Not decided yet |
 
 and these hold:
 
 - A superseded ADR is never cited as the current rule. The ADR at the end of its chain is
-  cited instead.
+  cited instead, but only if that ADR is itself **in force**. When the chain ends at an
+  ADR that is deprecated, not adopted, proposed or missing (`search` prints
+  `superseded→ADR-99(deprecated)` or `(not found)`), say that no ADR in the chain is in
+  force.
 - Before an ADR is called **in force**, every reference `adr refs` marks `← NEWER` has been
   checked.
 - When nothing matched, the report says so and lists every term that was tried.
@@ -39,9 +42,8 @@ and these hold:
 
 `adr.config.json` names generated files under `paths.outputs`, written by `adr regenerate`
 into `paths.adrDir` (`adr init` names them `effective.md`, `graph.md` and `graph/`). Do not
-open them. They are large, they
-cannot show a partial revision, and everything this skill needs comes back from
-`adr search` and `adr refs` with the status already attached.
+open them. They are large, they cannot show a partial revision, and everything this skill
+needs comes back from `adr search` and `adr refs` with the status already attached.
 
 ## Find the CLI
 
@@ -50,7 +52,9 @@ for which `<cli> search --help` succeeds:
 
 1. A script the host repo defines for it (for example `pnpm adr`). The host decides the
    flags; do not build your own.
-2. `pnpm exec adr` or `npx adr`, when `@kompiro/adr-tools` is a dependency.
+2. `pnpm exec adr`, or `npx --no-install adr`, when `@kompiro/adr-tools` is a dependency.
+   Never a bare `npx adr`: when the dependency is not installed, npx downloads and runs
+   an unrelated npm package named `adr`.
 3. `adr` on `PATH` (the standalone binary).
 
 A host may pin an older version as a dependency while a newer binary is on `PATH`; the
@@ -73,11 +77,13 @@ Write down the terms before searching:
 - synonyms and the older name of anything that was renamed
 
 Three to six terms are usually enough. Terms that differ only in case count once.
+Quote a term that has a space in it (`"icon mode"`); unquoted, the shell splits it into
+`icon` and `mode`, and `mode` alone matches far too much.
 
 ### 2. Search
 
 ```sh
-adr search <term> [<term> ...]
+adr search <term> [<term> ...]      # e.g. adr search "icon mode" アイコンモード removal
 ```
 
 One line per ADR, best match first:
@@ -109,7 +115,7 @@ point at it (`referenced by:`, labelled with the field), and the ADRs that menti
 in the body (`mentioned only in body:`). Ids may be written `ADR-38`, `adr-38` or `38`.
 
 - **Superseded:** run `adr refs` on the ADR at the end of the chain, and treat that one as
-  the candidate.
+  the candidate, classified by its own status.
 - **`← NEWER` entries:** open each one and read the section that states its decision. Do
   not depend on the heading text: the reference template calls it `## Decision`, but a
   host may use another heading or another language. Check the host's `TEMPLATE.md` in the
@@ -148,12 +154,17 @@ If nothing matched, write that, and list the terms tried in step 1.
 
 Still do not read the generated outputs. Instead:
 
-1. `grep -ril` each term under `paths.adrDir` (`adr init` uses `docs/adr`), leaving out the
-   generated files.
+In every `grep` below, leave out the generated outputs (`paths.outputs`) and the
+non-ADR files in the directory (`README.md`, `TEMPLATE.md`): they mention many ids and
+carry no ADR frontmatter.
+
+1. `grep -ril` each term under `paths.adrDir` (`adr init` uses `docs/adr`).
 2. For each hit, read only the frontmatter: `status`, `superseded_by`, and the
    relationship fields (`supersedes`, `depends_on`, `related_to`, `conflicts_with`,
    `refines`).
-3. To find what points at a candidate, `grep -rl '<id>\b'` under the ADR directory and
-   compare each hit's `date` with the candidate's.
+3. To find what points at a candidate, `grep -rlw '<id>'` under the ADR directory
+   (`-w` keeps `ADR-38` from matching `ADR-380`). A hit is newer when its `date` is
+   later, or when the dates are equal and its id sorts after the candidate's, as
+   `adr refs` decides.
 
 Then classify and report as above, and say that the lookup used the fallback.
