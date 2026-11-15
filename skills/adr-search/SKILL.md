@@ -176,13 +176,14 @@ In every `grep` below, leave out the generated outputs (`paths.outputs`) and the
 non-ADR files in the directory (`README.md`, `TEMPLATE.md`): they mention many ids and
 carry no ADR frontmatter.
 
-1. `grep -ril` each term under `paths.adrDir` (`adr init` uses `docs/adr`), and also match
-   each term against the filenames there (`ls <dir> | grep -i <term>`): a filename such
-   as `38-mtls.md` may carry a term the body never spells out.
+1. `grep -rilF -- '<term>'` under `paths.adrDir` (`adr init` uses `docs/adr`), and also
+   match each term against the filenames there (`ls <dir> | grep -iF -- '<term>'`): a
+   filename such as `38-mtls.md` may carry a term the body never spells out. `-F` keeps
+   a term like `cache[0]` literal, as `adr search` does.
 2. For each hit, read only the frontmatter: `status`, `superseded_by`, and the
    relationship fields (`supersedes`, `depends_on`, `related_to`, `conflicts_with`,
    `refines`).
-3. To find what points at a candidate, `grep -rlw '<id>'` under the ADR directory
+3. To find what points at a candidate, `grep -rlwF -- '<id>'` under the ADR directory
    (`-w` keeps `ADR-38` from matching `ADR-380`). A hit is newer when its `date` is
    later, or when the dates are equal and its id sorts after the candidate's, as
    `adr refs` decides.
