@@ -5,7 +5,13 @@ import { DEFAULT_ASSUMPTION_RANGE_PIN } from "./config.ts";
 import type { AdrConfig, IdFormat } from "./config.ts";
 import { compareAdrIds } from "./sort.ts";
 
-const VALID_STATUSES = ["proposed", "accepted", "deprecated", "superseded", "not_adopted"] as const;
+export const VALID_STATUSES = [
+  "proposed",
+  "accepted",
+  "deprecated",
+  "superseded",
+  "not_adopted",
+] as const;
 type Status = (typeof VALID_STATUSES)[number];
 
 type Topic = string;

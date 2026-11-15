@@ -34,6 +34,11 @@ pnpm run build
   `feat(validate): enforce supersedes consistency`).
 - Keep PRs focused — one logical change per PR.
 - Open an issue first for larger changes so the approach can be discussed.
+- A PR that renames a subcommand or flag, or adds a status or relationship
+  field, updates the skill in [`skills/adr-search/`](./skills/adr-search/) in
+  the same PR. `test/skill-drift.test.ts` fails when the skill names a
+  subcommand, flag or config path the CLI does not have, or leaves out a status
+  or relationship field.
 
 All PRs run CI (typecheck, lint, format, tests, build, and a CLI smoke
 test). CI must be green before merge.
@@ -44,7 +49,9 @@ Releases publish to the public npm registry, triggered by a `v*` tag. Auth uses
 **npm Trusted Publishing via GitHub OIDC** — there is no stored `NPM_TOKEN`.
 
 1. Bump `version` in `package.json` per [SemVer](https://semver.org/).
-   While the package is pre-1.0, breaking changes bump the minor.
+   While the package is pre-1.0, breaking changes bump the minor. Set
+   `version` in `.claude-plugin/plugin.json` to the same value (a test checks
+   that they match).
 2. Commit (`chore: release vX.Y.Z`) and merge to `main`.
 3. Tag the merge commit and push the tag:
    ```sh
