@@ -97,12 +97,22 @@ One line per ADR, best match first:
   the last step carries its status when it is not `accepted`
   (`superseded→ADR-99(not found)`).
 - `*` marks a term found in the title or filename. The number counts matching body lines.
-- Exit status `1` means nothing matched. It is an answer, not a failure: try the
-  synonyms from step 1 before reporting that nothing matched.
+- Exit status `1` with `no ADR matched: ...` on stderr means nothing matched. It is an
+  answer, not a failure: try the synonyms from step 1 before reporting that nothing
+  matched. Exit status `1` with any other message (a missing or invalid
+  `adr.config.json`, a missing ADR directory) is a failed lookup: report the error, not
+  an empty result.
 - `-n <N>` shows more than the default 20. `--format=json` is there for programs; the
   text is shorter to read.
 
 Pick the candidates from the titles. Skip an ADR whose only hits are a passing mention.
+
+For each candidate you keep, read the section that states its decision before you say what
+it requires. Do not depend on the heading text: the reference template calls it
+`## Decision`, but a host may use another heading or another language (check the host's
+`TEMPLATE.md` in the ADR directory if one exists). Read the rejected alternatives too when
+the ADR has them; they feed the second list in step 4. `search` and `refs` return
+metadata, not the decision.
 
 ### 3. Check what points at each candidate
 
@@ -116,13 +126,14 @@ in the body (`mentioned only in body:`). Ids may be written `ADR-38`, `adr-38` o
 
 - **Superseded:** run `adr refs` on the ADR at the end of the chain, and treat that one as
   the candidate, classified by its own status.
-- **`← NEWER` entries:** open each one and read the section that states its decision. Do
-  not depend on the heading text: the reference template calls it `## Decision`, but a
-  host may use another heading or another language. Check the host's `TEMPLATE.md` in the
-  ADR directory if one exists. Only a newer ADR that is itself in force (`accepted`, and
-  not superseded) can revise the candidate. A newer `proposed` ADR is a pending change and
-  a newer `not_adopted` one is a rejected change: name them in the report, but they leave
-  the candidate's class as it is. For a newer ADR that is in force, decide:
+- **`← NEWER` entries:** open each one and read the section that states its decision.
+  Only a newer ADR that is itself in force (`accepted`, and not superseded) can revise the
+  candidate. A newer `proposed` ADR is a pending change and a newer `not_adopted` one is a
+  rejected change: name them in the report, but they leave the candidate's class as it
+  is. A newer ADR that is itself superseded may have passed its revision on to its
+  successor, which need not point at the candidate: run `adr refs` on it, follow its
+  chain to the end, and judge by that ADR if it is in force. For a newer ADR that is in
+  force, decide:
   - It changes part of the candidate's decision → **in force, partly revised**, and name
     the part.
   - It replaces the candidate's decision without being recorded as `supersedes` → report
@@ -170,4 +181,5 @@ carry no ADR frontmatter.
    later, or when the dates are equal and its id sorts after the candidate's, as
    `adr refs` decides.
 
-Then classify and report as above, and say that the lookup used the fallback.
+Then read the decision of each candidate you keep (step 2 above), classify and report as
+above, and say that the lookup used the fallback.
