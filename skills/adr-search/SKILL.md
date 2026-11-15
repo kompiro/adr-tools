@@ -119,7 +119,10 @@ in the body (`mentioned only in body:`). Ids may be written `ADR-38`, `adr-38` o
 - **`← NEWER` entries:** open each one and read the section that states its decision. Do
   not depend on the heading text: the reference template calls it `## Decision`, but a
   host may use another heading or another language. Check the host's `TEMPLATE.md` in the
-  ADR directory if one exists. Then decide:
+  ADR directory if one exists. Only a newer ADR that is itself in force (`accepted`, and
+  not superseded) can revise the candidate. A newer `proposed` ADR is a pending change and
+  a newer `not_adopted` one is a rejected change: name them in the report, but they leave
+  the candidate's class as it is. For a newer ADR that is in force, decide:
   - It changes part of the candidate's decision → **in force, partly revised**, and name
     the part.
   - It replaces the candidate's decision without being recorded as `supersedes` → report
