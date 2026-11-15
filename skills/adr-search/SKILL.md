@@ -31,7 +31,8 @@ The report classifies every ADR it mentions as exactly one of:
 and these hold:
 
 - A superseded ADR is never cited as the current rule. The ADR at the end of its chain is
-  cited instead, but only if that ADR is itself **in force**. When the chain ends at an
+  cited instead, but only if that ADR is itself **in force** or **in force, partly
+  revised** (then also name the revising ADR and the part it changes). When the chain ends at an
   ADR that is deprecated, not adopted or proposed (`search` prints
   `superseded→ADR-99(deprecated)`), say that no ADR in the chain is in force. When it
   ends at a missing ADR (`(not found)`), the class is **unresolved**: name the missing id.
