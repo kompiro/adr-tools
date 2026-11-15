@@ -147,7 +147,9 @@ already checked, so that each is checked once and a cycle ends:
    you are checking, or the successor you judged by, gets its own `adr refs`: a still
    newer ADR may revise it without naming the original.
 
-Stop when every ADR you would cite has had its `← NEWER` entries read.
+Stop when every ADR you would cite has had its `← NEWER` entries read. In the report, name
+for each changed part the latest in-force ADR that changes it, not the first revision you
+met.
 
 - Older referrers (no `← NEWER`) cannot revise the candidate. Read them only if they
   explain why the candidate exists.
