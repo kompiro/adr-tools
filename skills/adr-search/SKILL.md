@@ -32,9 +32,9 @@ and these hold:
 
 - A superseded ADR is never cited as the current rule. The ADR at the end of its chain is
   cited instead, but only if that ADR is itself **in force**. When the chain ends at an
-  ADR that is deprecated, not adopted, proposed or missing (`search` prints
-  `superseded→ADR-99(deprecated)` or `(not found)`), say that no ADR in the chain is in
-  force.
+  ADR that is deprecated, not adopted or proposed (`search` prints
+  `superseded→ADR-99(deprecated)`), say that no ADR in the chain is in force. When it
+  ends at a missing ADR (`(not found)`), the class is **unresolved**: name the missing id.
 - Before an ADR is called **in force**, every reference `adr refs` marks `← NEWER` has been
   checked.
 - When nothing matched, the report says so and lists every term that was tried.
@@ -126,23 +126,29 @@ For each ADR this prints its `superseded_by` chain, the ADRs whose relationship 
 point at it (`referenced by:`, labelled with the field), and the ADRs that mention it only
 in the body (`mentioned only in body:`). Ids may be written `ADR-38`, `adr-38` or `38`.
 
-- **Superseded:** run `adr refs` on the ADR at the end of the chain, and treat that one as
-  the candidate, classified by its own status.
-- **`← NEWER` entries:** open each one and read the section that states its decision.
-  Only a newer ADR that is itself in force (`accepted`, and not superseded) can revise the
-  candidate. A newer `proposed` ADR is a pending change and a newer `not_adopted` one is a
-  rejected change: name them in the report, but they leave the candidate's class as it
-  is. A newer ADR that is itself superseded may have passed its revision on to its
-  successor, which need not point at the candidate: run `adr refs` on it, follow its
-  chain to the end, and judge by that ADR if it is in force. If the chain ends at a
-  missing ADR (`(not found)`), whether the revision survived cannot be told: report the
-  candidate's class as **unresolved** and say why, rather than as in force. For a newer
-  ADR that is in force, decide:
-  - It changes part of the candidate's decision → **in force, partly revised**, and name
-    the part.
-  - It replaces the candidate's decision without being recorded as `supersedes` → report
-    it as superseding in substance, and point out that the frontmatter does not say so.
-  - It builds on the candidate without changing it → it does not affect the class.
+Apply one rule to every ADR you would cite, the candidates first. Keep a list of the ADRs
+already checked, so that each is checked once and a cycle ends:
+
+1. **Follow its own chain.** If it is superseded, check the ADR at the end of the chain
+   instead, by its own status. A chain that ends at a missing ADR (`(not found)`) leaves
+   the class **unresolved**.
+2. **Read every `← NEWER` entry's decision** (step 2 says how to find it). Each newer ADR
+   is judged by what is in force now:
+   - `proposed` is a pending change, `not_adopted` a rejected one and `deprecated` a
+     withdrawn one: name it in the report, and it leaves the class as it is.
+   - Superseded: its revision may live on in its successor, which need not point at the
+     ADR you are checking. Judge by the end of its chain instead. A chain that ends at a
+     missing ADR makes the class **unresolved**.
+   - In force: decide whether it changes part of the decision (**in force, partly
+     revised**, name the part), replaces it without being recorded as `supersedes`
+     (report it as superseding in substance, and say the frontmatter does not record it),
+     or builds on it without changing it (no effect on the class).
+3. **Check every ADR this turns up the same way.** An ADR that revises or replaces the one
+   you are checking, or the successor you judged by, gets its own `adr refs`: a still
+   newer ADR may revise it without naming the original.
+
+Stop when every ADR you would cite has had its `← NEWER` entries read.
+
 - Older referrers (no `← NEWER`) cannot revise the candidate. Read them only if they
   explain why the candidate exists.
 - If the CLI notes on stderr that `adr validate` reports errors, an ADR whose frontmatter
