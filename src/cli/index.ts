@@ -4,7 +4,9 @@ import { main as runCheckAssumptions } from "./check-assumptions.ts";
 import { main as runCheckPermalinks } from "./check-permalinks.ts";
 import { main as runExtract } from "./extract.ts";
 import { runInitCli } from "./init.ts";
+import { main as runRefs } from "./refs.ts";
 import { main as runRegenerate } from "./regenerate.ts";
+import { main as runSearch } from "./search.ts";
 import { main as runValidate } from "./validate.ts";
 import { main as runVisualize } from "./visualize.ts";
 
@@ -15,6 +17,8 @@ Subcommands:
   validate              schema and cross-reference validation of ADRs
   regenerate            rewrite effective.md, graph.md, and graph/<topic>.md
   extract               query the ADR set (effective, slice, closure)
+  search                find ADRs by words, with their status and successor
+  refs                  show what points at an ADR and whether it is still in force
   visualize             render Markdown / Mermaid views of the ADR set
   check-assumptions     verify file: / symbol: / grep: assumptions in ADRs
   check-permalinks      verify permalink: sources exist and deep anchors resolve
@@ -41,6 +45,10 @@ function main(): number | Promise<number> {
       return runRegenerate(subArgv);
     case "extract":
       return runExtract(subArgv);
+    case "search":
+      return runSearch(subArgv);
+    case "refs":
+      return runRefs(subArgv);
     case "visualize":
       return runVisualize(subArgv);
     case "check-assumptions":
