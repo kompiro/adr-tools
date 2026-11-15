@@ -59,9 +59,10 @@ The skill is in English and states:
    brought `search` / `refs`, and gives a `grep`-on-frontmatter fallback for an
    older or missing CLI, which still does not read the generated outputs.
 
-`test/skill-drift.test.ts` fails when the skill names a subcommand, `--flag` or
-`paths.*` key the CLI does not have, or leaves out a status or a relationship
-field. It also holds `.claude-plugin/plugin.json`'s version equal to
+`test/skill-drift.test.ts` fails when the skill names a subcommand the CLI does
+not dispatch, a flag (`--format=`, `-n`, ...) that `search` / `refs` do not
+define, or a `paths.*` key the config schema lacks, or when it leaves out a
+status or leaves a relationship field out of its fallback. It also holds `.claude-plugin/plugin.json`'s version equal to
 `package.json`'s.
 
 ## Rationale
