@@ -26,6 +26,7 @@ The report classifies every ADR it mentions as exactly one of:
 | **superseded** | `status: superseded`. Name the ADR at the end of its `superseded_by` chain, and classify that ADR by its own status |
 | **no longer in force** | `status: deprecated` or `not_adopted`. A `not_adopted` ADR is still worth citing: it records an option that was rejected and why |
 | **proposed** | `status: proposed`. Not decided yet |
+| **unresolved** | what exists cannot settle the class, as when a newer revision's chain ends at a missing ADR. Say what is missing |
 
 and these hold:
 
@@ -102,8 +103,9 @@ One line per ADR, best match first:
   matched. Exit status `1` with any other message (a missing or invalid
   `adr.config.json`, a missing ADR directory) is a failed lookup: report the error, not
   an empty result.
-- `-n <N>` shows more than the default 20. `--format=json` is there for programs; the
-  text is shorter to read.
+- The default limit is 20 lines. When a search prints exactly as many lines as the limit,
+  more ADRs matched: rerun with a larger `-n <N>` until it prints fewer. `--format=json`
+  is there for programs; the text is shorter to read.
 
 Pick the candidates from the titles. Skip an ADR whose only hits are a passing mention.
 
@@ -132,8 +134,10 @@ in the body (`mentioned only in body:`). Ids may be written `ADR-38`, `adr-38` o
   rejected change: name them in the report, but they leave the candidate's class as it
   is. A newer ADR that is itself superseded may have passed its revision on to its
   successor, which need not point at the candidate: run `adr refs` on it, follow its
-  chain to the end, and judge by that ADR if it is in force. For a newer ADR that is in
-  force, decide:
+  chain to the end, and judge by that ADR if it is in force. If the chain ends at a
+  missing ADR (`(not found)`), whether the revision survived cannot be told: report the
+  candidate's class as **unresolved** and say why, rather than as in force. For a newer
+  ADR that is in force, decide:
   - It changes part of the candidate's decision → **in force, partly revised**, and name
     the part.
   - It replaces the candidate's decision without being recorded as `supersedes` → report
@@ -172,7 +176,9 @@ In every `grep` below, leave out the generated outputs (`paths.outputs`) and the
 non-ADR files in the directory (`README.md`, `TEMPLATE.md`): they mention many ids and
 carry no ADR frontmatter.
 
-1. `grep -ril` each term under `paths.adrDir` (`adr init` uses `docs/adr`).
+1. `grep -ril` each term under `paths.adrDir` (`adr init` uses `docs/adr`), and also match
+   each term against the filenames there (`ls <dir> | grep -i <term>`): a filename such
+   as `38-mtls.md` may carry a term the body never spells out.
 2. For each hit, read only the frontmatter: `status`, `superseded_by`, and the
    relationship fields (`supersedes`, `depends_on`, `related_to`, `conflicts_with`,
    `refines`).
