@@ -85,8 +85,8 @@ Before reading the generated indexes in full, ask the two questions directly:
 
 ```sh
 $ npx adr search -n 2 cache redis
- 1  ADR-12  superseded→ADR-31  2026-03-02  Cache rendered pages in memory  [cache*(9) redis(2)]
- 2  ADR-31  accepted  2026-07-18  Move the page cache to Redis  [cache*(6) redis*(7)]
+ 1  ADR-31  accepted  2026-07-18  Move the page cache to Redis  [cache*(6) redis*(7)]
+ 2  ADR-12  superseded→ADR-31  2026-03-02  Cache rendered pages in memory  [cache*(9) redis(2)]
 
 $ npx adr refs ADR-12
 ADR-12  superseded  2026-03-02  Cache rendered pages in memory
@@ -100,8 +100,8 @@ ADR-12  superseded  2026-03-02  Cache rendered pages in memory
     ADR-40  accepted  2026-09-01  ← NEWER  Serve stale pages while the cache refills
 ```
 
-- `search` matches each term as a case-insensitive substring of the title,
-  filename and body. It ranks by distinct terms matched, then by terms hitting
+- `search` matches each term as a case-insensitive substring of the title, the
+  filename slug (without the id prefix and `.md`) and the body. It ranks by distinct terms matched, then by terms hitting
   the title or filename (marked `*`), then by matching body lines; ties go to the
   newer ADR. A superseded ADR shows its successor chain, with the last step's
   status when it is not `accepted`. `-n <N>` (default 20),
