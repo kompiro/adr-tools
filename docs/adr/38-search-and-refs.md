@@ -86,9 +86,10 @@ inherit `idFormat` and `paths.adrDir` from the config like every other command.
 3. **Text is the default output, JSON an option.** The measured saving comes
    from a short, line-oriented answer that already says which ADR is current.
 
-4. **The body line count skips the first H1.** The validator requires it to
-   restate `<id>: <title>`, so counting it would add one line to every title
-   hit, which the `*` already reports.
+4. **The body line count skips a leading H1 that restates `<id>: <title>`.**
+   The validator requires that heading, so counting it would add one line to
+   every title hit, which the `*` already reports. A heading that says
+   something else stays searchable.
 
 5. **"Newer" compares dates, then ids on the same date.** With `issue-number`
    ids several ADRs often share a date, and the id order is the only remaining
