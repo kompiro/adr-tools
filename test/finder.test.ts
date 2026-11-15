@@ -167,6 +167,16 @@ describe("searchAdrs", () => {
     expect(hit.terms).toEqual([{ term: "redis", lines: 1, titleHit: false }]);
   });
 
+  it("keeps a leading H1 searchable when it does not restate the id and title", () => {
+    writeFileSync(
+      join(tmp, "8-cache.md"),
+      "---\nid: ADR-8\ntitle: Cache\nstatus: accepted\ntopic: core-concepts\ndate: 2026-01-01\n---\n\n# ADR-8: Redis\n\nbody\n",
+    );
+    const [hit] = searchAdrs(load(), ["redis"]);
+    expect(hit.adr.id).toBe("ADR-8");
+    expect(hit.terms).toEqual([{ term: "redis", lines: 1, titleHit: false }]);
+  });
+
   it("shows the status at the end of the chain when it is not accepted", () => {
     writeAdr({
       n: 50,

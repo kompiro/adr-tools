@@ -87,7 +87,7 @@ export function searchAdrs(
   for (const adr of parsed) {
     const title = adr.fm.title.toLowerCase();
     const file = filenameSlug(adr.file).toLowerCase();
-    const bodyLines = bodyLinesWithoutHeading(adr.body.toLowerCase());
+    const bodyLines = bodyLinesWithoutHeading(adr);
     const hits: TermHit[] = [];
     for (const term of wanted) {
       const needle = term.toLowerCase();
@@ -128,16 +128,17 @@ function filenameSlug(file: string): string {
 }
 
 /**
- * Body lines minus the leading H1. The validator requires that heading to read
- * `<id>: <title>`, so counting it would add one line to every title hit; the
- * title is already reported by the `*` mark. Only a heading on the first
- * non-blank line is dropped, so a `#` line further down (a shell comment in a
- * code block, say) is still counted.
+ * Lower-cased body lines minus a leading H1 that restates `<id>: <title>`.
+ * Counting that heading would add one line to every title hit, which the `*`
+ * mark already reports. A heading that says anything else (the validator only
+ * warns when it differs from the title) stays searchable, and so does a `#`
+ * line further down, such as a shell comment in a code block.
  */
-function bodyLinesWithoutHeading(body: string): string[] {
-  const lines = body.split(/\r?\n/);
+function bodyLinesWithoutHeading(adr: ParsedAdr): string[] {
+  const lines = adr.body.toLowerCase().split(/\r?\n/);
   const first = lines.findIndex((l) => l.trim() !== "");
-  if (first >= 0 && /^\s*#\s+/.test(lines[first])) lines.splice(first, 1);
+  const restated = `# ${adr.id}: ${adr.fm.title}`.toLowerCase().replace(/\s+/g, " ");
+  if (first >= 0 && lines[first].trim().replace(/\s+/g, " ") === restated) lines.splice(first, 1);
   return lines;
 }
 

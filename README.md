@@ -101,11 +101,14 @@ ADR-12  superseded  2026-03-02  Cache rendered pages in memory
 ```
 
 - `search` matches each term as a case-insensitive substring of the title, the
-  filename slug (without the id prefix and `.md`) and the body. It ranks by distinct terms matched, then by terms hitting
-  the title or filename (marked `*`), then by matching body lines; ties go to the
-  newer ADR. A superseded ADR shows its successor chain, with the last step's
-  status when it is not `accepted`. `-n <N>` (default 20),
-  `--format=json`, `--dir=<path>`; exits 1 when nothing matched.
+  filename slug (without the id prefix and `.md`) and the body. The id itself is
+  not searched (use `refs` for that), and a leading `# <id>: <title>` heading is
+  not counted as a body line because it only restates the title. It ranks by
+  distinct terms matched, then by terms hitting the title or filename (marked
+  `*`), then by matching body lines; ties go to the newer ADR. A superseded ADR
+  shows its successor chain, with the last step's status when it is not
+  `accepted`. `-n <N>` (default 20), `--format=json`, `--dir=<path>`; exits 1
+  when nothing matched.
 - `refs` lists, per ADR, its `superseded_by` chain, every ADR whose relationship
   fields point at it (labelled with the fields), and ADRs that mention it only in
   the body. `← NEWER` marks a referrer later than the ADR (by date, then id).
