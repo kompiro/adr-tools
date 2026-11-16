@@ -1,6 +1,6 @@
 {
   "name": "adr-tools",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "description": "Claude Code skill for finding the ADRs that apply to a task and which of them are still in force, with the adr CLI.",
   "author": { "name": "Hiroki Kondo" },
   "repository": "https://github.com/kompiro/adr-tools",
