@@ -45,6 +45,29 @@ add the one-liner above as a `RUN` step in your `Dockerfile`.
 > JSON Schema autocompletion in editors only resolves when the package is also
 > installed via npm.
 
+### Claude Code plugin
+
+This repo is also a [Claude Code](https://claude.com/claude-code) plugin. Its
+`adr-search` skill (`/adr-tools:adr-search`) finds the ADRs that apply to a task
+and says which of them are still in force: it runs `adr search` and `adr refs`
+(see [below](#finding-the-adrs-that-are-still-in-force-search-refs)), checks
+every newer ADR that points at a candidate, and never reads the generated
+`effective.md` / `graph.md`. The plugin is listed in the `kompiro-hane`
+marketplace:
+
+```
+/plugin marketplace add kompiro/hane
+/plugin install adr-tools@kompiro-hane
+```
+
+If you added `kompiro-hane` before adr-tools was listed, run
+`/plugin marketplace update kompiro-hane` first, or the install cannot find the
+plugin.
+
+The skill needs adr-tools v0.0.14 or later for `search` / `refs`, and falls back
+to reading frontmatter with `grep` on an older CLI. The npm package and the
+binaries do not include it.
+
 ## Quick start
 
 After installing, the `adr` binary is on your project's `PATH`:
